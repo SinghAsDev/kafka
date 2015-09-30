@@ -225,33 +225,64 @@ object AdminUtils extends Logging {
 
   def topicExists(zkClient: ZkClient, topic: String): Boolean = 
     zkClient.exists(ZkUtils.getTopicPath(topic))
-    
+
   def createTopic(zkClient: ZkClient,
                   topic: String,
-                  partitions: Int, 
-                  replicationFactor: Int, 
-                  topicConfig: Properties = new Properties) {
+                  partitions: Int,
+                  replicationFactor: Int,
+                  topicConfig: Properties = new Properties,
+                  namespace: String= "") {
     val brokerList = ZkUtils.getSortedBrokerList(zkClient)
     val replicaAssignment = AdminUtils.assignReplicasToBrokers(brokerList, partitions, replicationFactor)
-    AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zkClient, topic, replicaAssignment, topicConfig)
+    AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zkClient, topic, replicaAssignment, topicConfig, namespace = namespace)
+  }
+
+  def createNamespace(zkClient: ZkClient,
+                      namespace: String,
+                      namespaceConfig: Properties = new Properties) {
+    if (ZkUtils.pathExists(zkClient, ZkUtils.BrokerTopicsPath + "/" + namespace.replace('.', '/')))
+      throw new AdminCommandFailedException("Namespace already exists: " + namespace)
+
+    // TODO: Add namespace validation
+    val splits: Array[String] = namespace.split("\\.")
+    var namespaceString: String = ""
+
+    splits.foreach {
+      (x: String) => {
+        var splitPath: String = ""
+        if (namespaceString.isEmpty)
+          namespaceString = x
+        else
+          namespaceString = namespaceString + "/" + x
+        splitPath = ZkUtils.BrokerTopicsPath + "/" + namespaceString
+        if (!ZkUtils.pathExists(zkClient, splitPath)) {
+          ZkUtils.createPersistentPath(zkClient, splitPath, ZkUtils.namespaceData(namespaceString.replace('/', '.')))
+          info("Created " + namespaceString)
+        }
+      }
+    }
   }
 
   def createOrUpdateTopicPartitionAssignmentPathInZK(zkClient: ZkClient,
                                                      topic: String,
                                                      partitionReplicaAssignment: Map[Int, Seq[Int]],
                                                      config: Properties = new Properties,
-                                                     update: Boolean = false) {
+                                                     update: Boolean = false,
+                                                     namespace: String = "") {
+    // TODO: validate namespace if specified
+    if (!namespace.isEmpty && !zkClient.exists(ZkUtils.BrokerTopicsPath + "/" + namespace.replace('.', '/')))
+      throw new InvalidTopicException("Namespace %s does not exist.".format(namespace))
     // validate arguments
     Topic.validate(topic)
     require(partitionReplicaAssignment.values.map(_.size).toSet.size == 1, "All partitions should have the same number of replicas.")
 
-    val topicPath = ZkUtils.getTopicPath(topic)
+    val topicPath = ZkUtils.getTopicPath(topic, namespace)
 
     if (!update) {
       if (zkClient.exists(topicPath))
         throw new TopicExistsException("Topic \"%s\" already exists.".format(topic))
       else if (Topic.hasCollisionChars(topic)) {
-        val allTopics = ZkUtils.getAllTopics(zkClient)
+        val allTopics = ZkUtils.getAllTopics(zkClient, namespace)
         val collidingTopics = allTopics.filter(t => Topic.hasCollision(topic, t))
         if (collidingTopics.nonEmpty) {
           throw new InvalidTopicException("Topic \"%s\" collides with existing topics: %s".format(topic, collidingTopics.mkString(", ")))
@@ -265,16 +296,17 @@ object AdminUtils extends Logging {
     if (!update) {
       // write out the config if there is any, this isn't transactional with the partition assignments
       LogConfig.validate(config)
-      writeEntityConfig(zkClient, ConfigType.Topic, topic, config)
+      // TODO: Address namespace for configs as well
+      writeEntityConfig(zkClient, ConfigType.Topic, topic, config, namespace)
     }
 
     // create the partition assignment
-    writeTopicPartitionAssignment(zkClient, topic, partitionReplicaAssignment, update)
+    writeTopicPartitionAssignment(zkClient, topic, partitionReplicaAssignment, update, namespace)
   }
 
-  private def writeTopicPartitionAssignment(zkClient: ZkClient, topic: String, replicaAssignment: Map[Int, Seq[Int]], update: Boolean) {
+  private def writeTopicPartitionAssignment(zkClient: ZkClient, topic: String, replicaAssignment: Map[Int, Seq[Int]], update: Boolean, namespace: String = "") {
     try {
-      val zkPath = ZkUtils.getTopicPath(topic)
+      val zkPath = ZkUtils.getTopicPath(topic, namespace)
       val jsonPartitionData = ZkUtils.replicaAssignmentZkData(replicaAssignment.map(e => (e._1.toString -> e._2)))
 
       if (!update) {
@@ -311,17 +343,17 @@ object AdminUtils extends Logging {
    *                 existing configs need to be deleted, it should be done prior to invoking this API
    *
    */
-  def changeTopicConfig(zkClient: ZkClient, topic: String, configs: Properties) {
+  def changeTopicConfig(zkClient: ZkClient, topic: String, configs: Properties, namespace: String = "") {
     if(!topicExists(zkClient, topic))
       throw new AdminOperationException("Topic \"%s\" does not exist.".format(topic))
     // remove the topic overrides
     LogConfig.validate(configs)
-    changeEntityConfig(zkClient, ConfigType.Topic, topic, configs)
+    changeEntityConfig(zkClient, ConfigType.Topic, topic, configs, namespace)
   }
 
-  private def changeEntityConfig(zkClient: ZkClient, entityType: String, entityName: String, configs: Properties) {
+  private def changeEntityConfig(zkClient: ZkClient, entityType: String, entityName: String, configs: Properties, namespace: String = "") {
     // write the new config--may not exist if there were previously no overrides
-    writeEntityConfig(zkClient, entityType, entityName, configs)
+    writeEntityConfig(zkClient, entityType, entityName, configs, namespace)
 
     // create the change notification
     val seqNode = ZkUtils.EntityConfigChangesPath + "/" + EntityConfigChangeZnodePrefix
@@ -336,20 +368,20 @@ object AdminUtils extends Logging {
   /**
    * Write out the topic config to zk, if there is any
    */
-  private def writeEntityConfig(zkClient: ZkClient, entityType: String, entityName: String, config: Properties) {
+  private def writeEntityConfig(zkClient: ZkClient, entityType: String, entityName: String, config: Properties, namespace: String = "") {
     val configMap: mutable.Map[String, String] = {
       import JavaConversions._
       config
     }
     val map = Map("version" -> 1, "config" -> configMap)
-    ZkUtils.updatePersistentPath(zkClient, ZkUtils.getEntityConfigPath(entityType, entityName), Json.encode(map))
+    ZkUtils.updatePersistentPath(zkClient, ZkUtils.getEntityConfigPath(entityType, entityName, namespace), Json.encode(map))
   }
   
   /**
    * Read the entity (topic or client) config (if any) from zk
    */
-  def fetchEntityConfig(zkClient: ZkClient, entityType: String, entity: String): Properties = {
-    val str: String = zkClient.readData(ZkUtils.getEntityConfigPath(entityType, entity), true)
+  def fetchEntityConfig(zkClient: ZkClient, entityType: String, entity: String, namespace: String = ""): Properties = {
+    val str: String = zkClient.readData(ZkUtils.getEntityConfigPath(entityType, entity, namespace), true)
     val props = new Properties()
     if(str != null) {
       Json.parseFull(str) match {

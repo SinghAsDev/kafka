@@ -65,11 +65,13 @@ object ConfigCommand {
     val entityName = opts.options.valueOf(opts.entityName)
 
     // compile the final set of configs
+    // TODO: add namespace option
     val configs = AdminUtils.fetchEntityConfig(zkClient, entityType, entityName)
     configs.putAll(configsToBeAdded)
     configsToBeDeleted.foreach(config => configs.remove(config))
 
     if (entityType.equals(ConfigType.Topic)) {
+      // TODO: add namespace option
       AdminUtils.changeTopicConfig(zkClient, entityName, configs)
       println("Updated config for topic: \"%s\".".format(entityName))
     } else {
@@ -87,6 +89,7 @@ object ConfigCommand {
         ZkUtils.getAllEntitiesWithConfig(zkClient, entityType)
 
     for (entityName <- entityNames) {
+      // TODO: add namespace option
       val configs = AdminUtils.fetchEntityConfig(zkClient, entityType, entityName)
       println("Configs for %s:%s are %s"
                       .format(entityType, entityName, configs.map(kv => kv._1 + "=" + kv._2).mkString(",")))

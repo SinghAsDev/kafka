@@ -275,7 +275,7 @@ class TopicDeletionManager(controller: KafkaController,
     controller.replicaStateMachine.handleStateChanges(failedReplicas, OfflineReplica)
   }
 
-  private def completeDeleteTopic(topic: String) {
+  private def completeDeleteTopic(topic: String, namespace: String = "") {
     // deregister partition change listener on the deleted topic. This is to prevent the partition change listener
     // firing before the new topic listener when a deleted topic gets auto created
     partitionStateMachine.deregisterPartitionChangeListener(topic)
@@ -289,7 +289,7 @@ class TopicDeletionManager(controller: KafkaController,
     topicsToBeDeleted -= topic
     partitionsToBeDeleted.retain(_.topic != topic)
     controllerContext.zkClient.deleteRecursive(ZkUtils.getTopicPath(topic))
-    controllerContext.zkClient.deleteRecursive(ZkUtils.getEntityConfigPath(ConfigType.Topic, topic))
+    controllerContext.zkClient.deleteRecursive(ZkUtils.getEntityConfigPath(ConfigType.Topic, topic, namespace))
     controllerContext.zkClient.delete(ZkUtils.getDeleteTopicPath(topic))
     controllerContext.removeTopic(topic)
   }

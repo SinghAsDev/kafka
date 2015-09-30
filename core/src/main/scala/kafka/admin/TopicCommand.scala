@@ -17,20 +17,21 @@
 
 package kafka.admin
 
-import joptsimple._
 import java.util.Properties
-import kafka.common.{Topic, AdminCommandFailedException}
-import kafka.utils.CommandLineUtils
-import kafka.utils._
+
+import joptsimple._
+import kafka.common.{AdminCommandFailedException, Topic}
+import kafka.consumer.Whitelist
+import kafka.coordinator.ConsumerCoordinator
+import kafka.log.LogConfig
+import kafka.server.ConfigType
+import kafka.utils.{CommandLineUtils, _}
 import org.I0Itec.zkclient.ZkClient
 import org.I0Itec.zkclient.exception.ZkNodeExistsException
-import scala.collection._
-import scala.collection.JavaConversions._
-import kafka.log.LogConfig
-import kafka.consumer.Whitelist
-import kafka.server.{ConfigType, OffsetManager}
 import org.apache.kafka.common.utils.Utils
-import kafka.coordinator.ConsumerCoordinator
+
+import scala.collection.JavaConversions._
+import scala.collection._
 
 
 object TopicCommand extends Logging {
@@ -52,9 +53,12 @@ object TopicCommand extends Logging {
     val zkClient = ZkUtils.createZkClient(opts.options.valueOf(opts.zkConnectOpt), 30000, 30000)
     var exitCode = 0
     try {
-      if(opts.options.has(opts.createOpt))
-        createTopic(zkClient, opts)
-      else if(opts.options.has(opts.alterOpt))
+      if(opts.options.has(opts.createOpt)) {
+        if (opts.options.has(opts.namespaceOpt) && !opts.options.has(opts.topicOpt))
+          createNamespace(zkClient, opts)
+        else
+          createTopic(zkClient, opts)
+      } else if(opts.options.has(opts.alterOpt))
         alterTopic(zkClient, opts)
       else if(opts.options.has(opts.listOpt))
         listTopics(zkClient, opts)
@@ -75,7 +79,12 @@ object TopicCommand extends Logging {
   }
 
   private def getTopics(zkClient: ZkClient, opts: TopicCommandOptions): Seq[String] = {
-    val allTopics = ZkUtils.getAllTopics(zkClient).sorted
+    var allTopics = Seq.empty[String]
+    if (opts.options.has(opts.namespaceOpt))
+      allTopics = ZkUtils.getAllTopics(zkClient, opts.options.valueOf(opts.namespaceOpt)).sorted
+    else
+      allTopics = ZkUtils.getAllTopics(zkClient).sorted
+
     if (opts.options.has(opts.topicOpt)) {
       val topicsSpec = opts.options.valueOf(opts.topicOpt)
       val topicsFilter = new Whitelist(topicsSpec)
@@ -84,6 +93,14 @@ object TopicCommand extends Logging {
       allTopics
   }
 
+  def createNamespace(zkClient: ZkClient, opts: TopicCommandOptions): Unit = {
+    val namespace = opts.options.valueOf(opts.namespaceOpt)
+    println("Creating namespace \"%s\".".format(namespace))
+    AdminUtils.createNamespace(zkClient, namespace)
+    println("Created namespace \"%s\".".format(namespace))
+  }
+
+
   def createTopic(zkClient: ZkClient, opts: TopicCommandOptions) {
     val topic = opts.options.valueOf(opts.topicOpt)
     val configs = parseTopicConfigsToBeAdded(opts)
@@ -91,12 +108,16 @@ object TopicCommand extends Logging {
       println("WARNING: Due to limitations in metric names, topics with a period ('.') or underscore ('_') could collide. To avoid issues it is best to use either, but not both.")
     if (opts.options.has(opts.replicaAssignmentOpt)) {
       val assignment = parseReplicaAssignment(opts.options.valueOf(opts.replicaAssignmentOpt))
+      // TODO: Address non-default namespace case
       AdminUtils.createOrUpdateTopicPartitionAssignmentPathInZK(zkClient, topic, assignment, configs, update = false)
     } else {
       CommandLineUtils.checkRequiredArgs(opts.parser, opts.options, opts.partitionsOpt, opts.replicationFactorOpt)
       val partitions = opts.options.valueOf(opts.partitionsOpt).intValue
       val replicas = opts.options.valueOf(opts.replicationFactorOpt).intValue
-      AdminUtils.createTopic(zkClient, topic, partitions, replicas, configs)
+      if (opts.options.has(opts.namespaceOpt))
+        AdminUtils.createTopic(zkClient, topic, partitions, replicas, configs, opts.options.valueOf(opts.namespaceOpt))
+      else
+        AdminUtils.createTopic(zkClient, topic, partitions, replicas, configs)
     }
     println("Created topic \"%s\".".format(topic))
   }
@@ -172,7 +193,11 @@ object TopicCommand extends Logging {
           val describePartitions: Boolean = !reportOverriddenConfigs
           val sortedPartitions = topicPartitionAssignment.toList.sortWith((m1, m2) => m1._1 < m2._1)
           if (describeConfigs) {
-            val configs = AdminUtils.fetchEntityConfig(zkClient, ConfigType.Topic, topic)
+            var configs: Properties = null
+            if (opts.options.has(opts.namespaceOpt))
+              configs = AdminUtils.fetchEntityConfig(zkClient, ConfigType.Topic, topic, opts.options.valueOf(opts.namespaceOpt))
+            else
+              configs = AdminUtils.fetchEntityConfig(zkClient, ConfigType.Topic, topic)
             if (!reportOverriddenConfigs || configs.size() != 0) {
               val numPartitions = topicPartitionAssignment.size
               val replicationFactor = topicPartitionAssignment.head._2.size
@@ -244,6 +269,10 @@ object TopicCommand extends Logging {
                          .withRequiredArg
                          .describedAs("topic")
                          .ofType(classOf[String])
+    val namespaceOpt = parser.accepts("namespace", "The namespace topic is in. If not specified, default namespace is used.")
+                         .withRequiredArg
+                         .describedAs("namespace")
+                         .ofType(classOf[String])
     val nl = System.getProperty("line.separator")
     val configOpt = parser.accepts("config", "A configuration override for the topic being created."  +
                                                          "The following is a list of valid configurations: " + nl + LogConfig.configNames.map("\t" + _).mkString(nl) + nl +
@@ -279,8 +308,10 @@ object TopicCommand extends Logging {
     def checkArgs() {
       // check required args
       CommandLineUtils.checkRequiredArgs(parser, options, zkConnectOpt)
-      if (!options.has(listOpt) && !options.has(describeOpt))
+      if (!options.has(listOpt) && !options.has(describeOpt) && !options.has(namespaceOpt))
         CommandLineUtils.checkRequiredArgs(parser, options, topicOpt)
+      if (!options.has(listOpt) && !options.has(describeOpt) && !options.has(topicOpt))
+        CommandLineUtils.checkRequiredArgs(parser, options, namespaceOpt)
 
       // check invalid args
       CommandLineUtils.checkInvalidArgs(parser, options, configOpt, allTopicLevelOpts -- Set(alterOpt, createOpt))

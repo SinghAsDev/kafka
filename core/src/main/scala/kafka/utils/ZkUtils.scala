@@ -73,15 +73,30 @@ object ZkUtils extends Logging {
     BrokerTopicsPath + "/" + topic
   }
 
+  def getTopicPath(topic: String, namespace: String = ""): String = {
+    var namespacePath = ""
+    if (namespace != null && !namespace.isEmpty)
+      namespacePath = namespace.replace('.', '/') + "/"
+    BrokerTopicsPath + "/" + namespacePath + topic
+  }
+
   def getTopicPartitionsPath(topic: String): String = {
     getTopicPath(topic) + "/partitions"
+  }
+
+  def getTopicPartitionsPath(topic: String, namespace: String = ""): String = {
+    getTopicPath(topic, namespace) + "/partitions"
   }
 
   def getEntityConfigRootPath(entityType: String): String =
     EntityConfigPath + "/" + entityType
 
-  def getEntityConfigPath(entityType: String, entity: String): String =
-    getEntityConfigRootPath(entityType) + "/" + entity
+  def getEntityConfigPath(entityType: String, entity: String, namespace: String = ""): String = {
+    var namespacePath: String = ""
+    if (!namespace.isEmpty)
+      namespacePath = namespace.replace('.', '/') + "/"
+    getEntityConfigRootPath(entityType) + "/" + namespacePath + entity
+  }
 
   def getDeleteTopicPath(topic: String): String =
     DeleteTopicsPath + "/" + topic
@@ -96,8 +111,15 @@ object ZkUtils extends Logging {
   def getTopicPartitionPath(topic: String, partitionId: Int): String =
     getTopicPartitionsPath(topic) + "/" + partitionId
 
+  def getTopicPartitionPath(topic: String, partitionId: Int, namespace: String = ""): String =
+    getTopicPartitionsPath(topic, namespace) + "/" + partitionId
+
+
   def getTopicPartitionLeaderAndIsrPath(topic: String, partitionId: Int): String =
     getTopicPartitionPath(topic, partitionId) + "/" + "state"
+
+  def getTopicPartitionLeaderAndIsrPath(topic: String, partitionId: Int, namespace: String = ""): String =
+    getTopicPartitionPath(topic, partitionId, namespace) + "/" + "state"
 
   def getSortedBrokerList(zkClient: ZkClient): Seq[Int] =
     ZkUtils.getChildren(zkClient, BrokerIdsPath).map(_.toInt).sorted
@@ -245,6 +267,13 @@ object ZkUtils extends Logging {
    */
   def replicaAssignmentZkData(map: Map[String, Seq[Int]]): String = {
     Json.encode(Map("version" -> 1, "partitions" -> map))
+  }
+
+  /**
+   * JSON namespace data.
+   */
+  def namespaceData(namespace: String): String = {
+    Json.encode(Map("version" -> 1, "namespace" -> namespace))
   }
 
   /**
@@ -686,6 +715,28 @@ object ZkUtils extends Logging {
     consumersPerTopicMap
   }
 
+  def getNamespaceData(zkClient: ZkClient, namespacePath: String): Map[String, String] = {
+    val jsonNamespaceData = readDataMaybeNull(zkClient, namespacePath)._1
+    if (jsonNamespaceData == null)
+      return Map[String, String]()
+    jsonNamespaceData match {
+      case Some(jsonNamespace) =>
+        if (jsonNamespace == null)
+          Map[String, String]()
+        else
+          Json.parseFull(jsonNamespace) match {
+          case Some(m) => m.asInstanceOf[Map[String, Any]].get("namespace") match {
+            case Some(ns) =>
+              val m1 = ns.asInstanceOf[String]
+              Map("namespace" -> m1)
+            case None => Map[String, String]()
+          }
+          case None => Map[String, String]()
+        }
+      case None => Map[String, String]()
+    }
+  }
+
   /**
    * This API takes in a broker id, queries zookeeper for the broker metadata and returns the metadata for that broker
    * or throws an exception if the broker dies before the query to zookeeper finishes
@@ -724,12 +775,59 @@ object ZkUtils extends Logging {
     }
   }
 
-  def getAllTopics(zkClient: ZkClient): Seq[String] = {
-    val topics = ZkUtils.getChildrenParentMayNotExist(zkClient, BrokerTopicsPath)
-    if(topics == null)
+  def isNamespace(zkClient: ZkClient, path: String): Boolean = {
+    getNamespaceData(zkClient, path).get("namespace").isDefined
+  }
+
+  def getTopics(zkClient: ZkClient, path: String): Seq[String] = {
+    val children: scala.Seq[String] = ZkUtils.getChildrenParentMayNotExist(zkClient, path)
+    if (children == null)
       Seq.empty[String]
     else
-      topics
+      children.flatMap((x: String) => {
+        if (isNamespace(zkClient, path + "/" + x)) {
+          Seq.empty[String]
+        } else
+          Seq(x)
+      })
+  }
+
+  // TODO: optimize zk calls
+  def getTopicsWNamespaces(zkClient: ZkClient, path: String): Seq[(String, String)] = {
+    val children: scala.Seq[String] = ZkUtils.getChildrenParentMayNotExist(zkClient, path)
+    if (children == null)
+      Seq.empty[(String, String)]
+    else {
+      var topicsWNamespaces: Seq[(String, String)] = Seq.empty[(String, String)]
+      children.foreach((x: String) => {
+        if (isNamespace(zkClient, path + "/" + x)) {
+          topicsWNamespaces = topicsWNamespaces ++ getTopicsWNamespaces(zkClient, path + "/" + x)
+        } else {
+          val namespace: Option[String] = getNamespaceData(zkClient, path).get("namespace")
+          namespace match {
+            case Some(ns) =>
+              topicsWNamespaces ++= Seq((ns.asInstanceOf[String], x))
+            case None =>
+              topicsWNamespaces ++= Seq(("", x))
+          }
+        }
+      })
+      topicsWNamespaces
+    }
+  }
+
+  def getAllTopicsWNamespaces(zkClient: ZkClient, namespace: String = ""): Seq[(String, String)] = {
+    var topicsPath = BrokerTopicsPath
+    if (!namespace.isEmpty)
+      topicsPath = topicsPath + "/" + namespace.replace('.', '/')
+    getTopicsWNamespaces(zkClient, topicsPath)
+  }
+
+  def getAllTopics(zkClient: ZkClient, namespace: String = ""): Seq[String] = {
+    var topicsParentPath = BrokerTopicsPath
+    if (!namespace.isEmpty)
+      topicsParentPath = topicsParentPath + "/" + namespace.replace('.', '/')
+    getTopics(zkClient, topicsParentPath)
   }
 
   /**
