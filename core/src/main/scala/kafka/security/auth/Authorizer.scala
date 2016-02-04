@@ -84,10 +84,10 @@ trait Authorizer extends Configurable {
 
   /**
    * gets set of principal types supported by configured authorizer.
-   * @return empty set if Authorizer implementation does not provide this information,
+   * @return set containing only "User" as principal type if Authorizer implementation does not provide this information,
    *         else set of principal types supported by the configured authorizer.
    */
-  def getSupportedPrincipalTypes(): Set[String] = Set()
+  def getSupportedPrincipalTypes(): Set[String] = Set(KafkaPrincipal.USER_TYPE)
 
   /**
    * Closes this instance.
