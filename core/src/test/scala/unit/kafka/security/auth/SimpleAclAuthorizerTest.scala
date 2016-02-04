@@ -254,6 +254,11 @@ class SimpleAclAuthorizerTest extends ZooKeeperTestHarness {
     assertEquals(acls1, authorizer.getAcls(resource1))
   }
 
+  @Test
+  def testSupportedPrincipalTypes() {
+    assertEquals("Supported principal types did not match.", Set(KafkaPrincipal.USER_TYPE), simpleAclAuthorizer.getSupportedPrincipalTypes())
+  }
+
   private def changeAclAndVerify(originalAcls: Set[Acl], addedAcls: Set[Acl], removedAcls: Set[Acl], resource: Resource = resource): Set[Acl] = {
     var acls = originalAcls
 

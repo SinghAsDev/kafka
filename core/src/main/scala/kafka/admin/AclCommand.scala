@@ -34,6 +34,9 @@ object AclCommand {
     Cluster -> Set(Create, ClusterAction, All)
   )
 
+  // Used only by tests to avoid system.exit
+  var inTestMode: Boolean = false
+
   def main(args: Array[String]) {
 
     val opts = new AclCommandOptions(args)
@@ -52,9 +55,13 @@ object AclCommand {
         listAcl(opts)
     } catch {
       case e: Throwable =>
-        println(s"Error while executing ACL command: ${e.getMessage}")
-        println(Utils.stackTrace(e))
-        System.exit(-1)
+        if (inTestMode) {
+          throw e
+        } else {
+          println(s"Error while executing ACL command: ${e.getMessage}")
+          println(Utils.stackTrace(e))
+          System.exit(-1)
+        }
     }
   }
 
@@ -80,6 +87,8 @@ object AclCommand {
     withAuthorizer(opts) { authorizer =>
       val resourceToAcl = getResourceToAcls(opts)
 
+      validatePrincipalTypes(resourceToAcl, authorizer.getSupportedPrincipalTypes())
+
       if (resourceToAcl.values.exists(_.isEmpty))
         CommandLineUtils.printUsageAndDie(opts.parser, "You must specify one of: --allow-principal, --deny-principal when trying to add ACLs.")
 
@@ -96,6 +105,8 @@ object AclCommand {
   private def removeAcl(opts: AclCommandOptions) {
     withAuthorizer(opts) { authorizer =>
       val resourceToAcl = getResourceToAcls(opts)
+
+      validatePrincipalTypes(resourceToAcl, authorizer.getSupportedPrincipalTypes())
 
       for ((resource, acls) <- resourceToAcl) {
         if (acls.isEmpty) {
@@ -121,6 +132,17 @@ object AclCommand {
 
       for ((resource, acls) <- resourceToAcls)
         println(s"Current ACLs for resource `${resource}`: $Newline ${acls.map("\t" + _).mkString(Newline)} $Newline")
+    }
+  }
+
+  def validatePrincipalTypes(resourceToAcl: Map[Resource, Set[Acl]], validPrincipalTypes: Set[String]) = {
+    for((_, acls) <- resourceToAcl) {
+      for(acl <- acls) {
+        val principalType: String = acl.principal.getPrincipalType
+        if(!validPrincipalTypes.contains(principalType)) {
+          throw new IllegalArgumentException(s"Principal type of $principalType is not supported by the Authorizer.")
+        }
+      }
     }
   }
 

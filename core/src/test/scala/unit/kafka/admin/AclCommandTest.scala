@@ -114,6 +114,20 @@ class AclCommandTest extends ZooKeeperTestHarness with Logging {
     AclCommand.withAuthorizer(new AclCommandOptions(args))(null)
   }
 
+  @Test
+  def testInvalidPrincipalType() {
+    val brokerProps = TestUtils.createBrokerConfig(0, zkConnect)
+    brokerProps.put(KafkaConfig.AuthorizerClassNameProp, "kafka.security.auth.SimpleAclAuthorizer")
+    val args = Array("--authorizer-properties", "zookeeper.connect=" + zkConnect)
+
+
+    AclCommand.inTestMode = true
+    intercept[IllegalArgumentException] {
+      AclCommand.main(args ++ Seq("--add", "--allow-principal", "user:user1", "--operation", "All", "--topic", "t1"))
+    }
+    AclCommand.inTestMode = false
+  }
+
   private def testRemove(resources: Set[Resource], resourceCmd: Array[String], args: Array[String], brokerProps: Properties) {
     for (resource <- resources) {
       Console.withIn(new StringReader(s"y${AclCommand.Newline}" * resources.size)) {

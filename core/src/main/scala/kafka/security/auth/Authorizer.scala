@@ -83,6 +83,13 @@ trait Authorizer extends Configurable {
   def getAcls(): Map[Resource, Set[Acl]]
 
   /**
+   * gets set of principal types supported by configured authorizer.
+   * @return empty set if Authorizer implementation does not provide this information,
+   *         else set of principal types supported by the configured authorizer.
+   */
+  def getSupportedPrincipalTypes(): Set[String] = Set()
+
+  /**
    * Closes this instance.
    */
   def close(): Unit

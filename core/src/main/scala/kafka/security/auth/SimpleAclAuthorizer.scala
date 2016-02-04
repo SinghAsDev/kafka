@@ -227,6 +227,10 @@ class SimpleAclAuthorizer extends Authorizer with Logging {
     aclCache.toMap
   }
 
+  override def getSupportedPrincipalTypes(): Set[String] = {
+    Set(KafkaPrincipal.USER_TYPE)
+  }
+
   def close() {
     if (aclChangeListener != null) aclChangeListener.close()
     if (zkUtils != null) zkUtils.close()
