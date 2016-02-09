@@ -115,17 +115,27 @@ class AclCommandTest extends ZooKeeperTestHarness with Logging {
   }
 
   @Test
-  def testInvalidPrincipalType() {
+  def testInvalidPrincipalTypeWhileAddingAcls() {
     val brokerProps = TestUtils.createBrokerConfig(0, zkConnect)
     brokerProps.put(KafkaConfig.AuthorizerClassNameProp, "kafka.security.auth.SimpleAclAuthorizer")
     val args = Array("--authorizer-properties", "zookeeper.connect=" + zkConnect)
 
 
-    AclCommand.inTestMode = true
     intercept[IllegalArgumentException] {
-      AclCommand.main(args ++ Seq("--add", "--allow-principal", "user:user1", "--operation", "All", "--topic", "t1"))
+      AclCommand.addAcl(new AclCommandOptions(args ++ Seq("--add", "--allow-principal", "user:user1", "--operation", "All", "--topic", "t1")))
     }
-    AclCommand.inTestMode = false
+  }
+
+  @Test
+  def testInvalidPrincipalTypeWhileRemovingAcls() {
+    val brokerProps = TestUtils.createBrokerConfig(0, zkConnect)
+    brokerProps.put(KafkaConfig.AuthorizerClassNameProp, "kafka.security.auth.SimpleAclAuthorizer")
+    val args = Array("--authorizer-properties", "zookeeper.connect=" + zkConnect)
+
+
+    intercept[IllegalArgumentException] {
+      AclCommand.addAcl(new AclCommandOptions(args ++ Seq("--remove", "--allow-principal", "user:user1", "--operation", "All", "--topic", "t1")))
+    }
   }
 
   private def testRemove(resources: Set[Resource], resourceCmd: Array[String], args: Array[String], brokerProps: Properties) {

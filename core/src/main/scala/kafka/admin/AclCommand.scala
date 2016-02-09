@@ -34,9 +34,6 @@ object AclCommand {
     Cluster -> Set(Create, ClusterAction, All)
   )
 
-  // Used only by tests to avoid system.exit
-  var inTestMode: Boolean = false
-
   def main(args: Array[String]) {
 
     val opts = new AclCommandOptions(args)
@@ -55,13 +52,9 @@ object AclCommand {
         listAcl(opts)
     } catch {
       case e: Throwable =>
-        if (inTestMode) {
-          throw e
-        } else {
-          println(s"Error while executing ACL command: ${e.getMessage}")
-          println(Utils.stackTrace(e))
-          System.exit(-1)
-        }
+        println(s"Error while executing ACL command: ${e.getMessage}")
+        println(Utils.stackTrace(e))
+        System.exit(-1)
     }
   }
 
@@ -83,7 +76,7 @@ object AclCommand {
     finally CoreUtils.swallow(authZ.close())
   }
 
-  private def addAcl(opts: AclCommandOptions) {
+  def addAcl(opts: AclCommandOptions) {
     withAuthorizer(opts) { authorizer =>
       val resourceToAcl = getResourceToAcls(opts)
 
@@ -102,7 +95,7 @@ object AclCommand {
     }
   }
 
-  private def removeAcl(opts: AclCommandOptions) {
+  def removeAcl(opts: AclCommandOptions) {
     withAuthorizer(opts) { authorizer =>
       val resourceToAcl = getResourceToAcls(opts)
 
@@ -122,7 +115,7 @@ object AclCommand {
     }
   }
 
-  private def listAcl(opts: AclCommandOptions) {
+  def listAcl(opts: AclCommandOptions) {
     withAuthorizer(opts) { authorizer =>
       val resources = getResource(opts, dieIfNoResourceFound = false)
 
