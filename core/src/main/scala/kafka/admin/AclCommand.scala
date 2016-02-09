@@ -115,7 +115,7 @@ object AclCommand {
     }
   }
 
-  def listAcl(opts: AclCommandOptions) {
+  private def listAcl(opts: AclCommandOptions) {
     withAuthorizer(opts) { authorizer =>
       val resources = getResource(opts, dieIfNoResourceFound = false)
 
