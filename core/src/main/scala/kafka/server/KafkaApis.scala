@@ -29,14 +29,14 @@ import kafka.coordinator.{GroupCoordinator, JoinGroupResult}
 import kafka.log._
 import kafka.message.{ByteBufferMessageSet, Message, MessageSet}
 import kafka.network._
-import kafka.network.RequestChannel.{Session, Response}
+import kafka.network.RequestChannel.{Request, Session, Response}
 import kafka.security.auth.{Authorizer, ClusterAction, Group, Create, Describe, Operation, Read, Resource, Topic, Write}
 import kafka.utils.{Logging, SystemTime, ZKGroupTopicDirs, ZkUtils}
 import org.apache.kafka.common.errors.{InvalidTopicException, NotLeaderForPartitionException, UnknownTopicOrPartitionException,
 ClusterAuthorizationException}
 import org.apache.kafka.common.metrics.Metrics
 import org.apache.kafka.common.protocol.{ApiKeys, Errors, Protocol, SecurityProtocol}
-import org.apache.kafka.common.requests.{ListOffsetRequest, ListOffsetResponse, GroupCoordinatorRequest, GroupCoordinatorResponse, ListGroupsResponse,
+import org.apache.kafka.common.requests.{EmptyResponse, ListOffsetRequest, ListOffsetResponse, GroupCoordinatorRequest, GroupCoordinatorResponse, ListGroupsResponse,
 DescribeGroupsRequest, DescribeGroupsResponse, HeartbeatRequest, HeartbeatResponse, JoinGroupRequest, JoinGroupResponse,
 LeaveGroupRequest, LeaveGroupResponse, ResponseHeader, ResponseSend, SyncGroupRequest, SyncGroupResponse, LeaderAndIsrRequest, LeaderAndIsrResponse,
 StopReplicaRequest, StopReplicaResponse, ProduceRequest, ProduceResponse, UpdateMetadataRequest, UpdateMetadataResponse, ProtocolVersionResponse}
@@ -92,7 +92,7 @@ class KafkaApis(val requestChannel: RequestChannel,
         case ApiKeys.DESCRIBE_GROUPS => handleDescribeGroupRequest(request)
         case ApiKeys.LIST_GROUPS => handleListGroupsRequest(request)
         case ApiKeys.PROTOCOL_VERSION => handleProtocolVersionRequest(request)
-        case requestId => throw new KafkaException("Unknown api code " + requestId)
+        case requestId => handleUnknownRequest(request)
       }
     } catch {
       case e: Throwable =>
@@ -106,7 +106,7 @@ class KafkaApis(val requestChannel: RequestChannel,
           /* If request doesn't have a default error response, we just close the connection.
              For example, when produce request has acks set to 0 */
           if (response == null)
-            requestChannel.closeConnection(request.processor, request)
+            handleUnknownRequest(request)
           else
             requestChannel.sendResponse(new Response(request, new ResponseSend(request.connectionId, respHeader, response)))
 
@@ -1005,5 +1005,9 @@ class KafkaApis(val requestChannel: RequestChannel,
       new ProtocolVersionResponse(Errors.NONE.code(), getProtocolVersions())
     }
     requestChannel.sendResponse(new RequestChannel.Response(request, new ResponseSend(request.connectionId, responseHeader, responseBody)))
+  }
+
+  def handleUnknownRequest(request: RequestChannel.Request) {
+    requestChannel.sendResponse(new Response(request, new ResponseSend(request.connectionId, new ResponseHeader(request.header.correlationId), new EmptyResponse())))
   }
 }
