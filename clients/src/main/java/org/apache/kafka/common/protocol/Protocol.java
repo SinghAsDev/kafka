@@ -20,6 +20,8 @@ import org.apache.kafka.common.protocol.types.ArrayOf;
 import org.apache.kafka.common.protocol.types.Field;
 import org.apache.kafka.common.protocol.types.Schema;
 
+import java.util.List;
+
 import static org.apache.kafka.common.protocol.types.Type.BYTES;
 import static org.apache.kafka.common.protocol.types.Type.INT16;
 import static org.apache.kafka.common.protocol.types.Type.INT32;
@@ -694,6 +696,25 @@ public class Protocol {
     public static final Schema[] UPDATE_METADATA_REQUEST = new Schema[] {UPDATE_METADATA_REQUEST_V0, UPDATE_METADATA_REQUEST_V1};
     public static final Schema[] UPDATE_METADATA_RESPONSE = new Schema[] {UPDATE_METADATA_RESPONSE_V0, UPDATE_METADATA_RESPONSE_V1};
 
+    /* Protocol version api */
+    public static final Schema PROTOCOL_VERSION_REQUEST_V0 = new Schema();
+
+    public static final Schema SINGLE_PROTOCOL_VERSION_V0 = new Schema(
+        new Field("api_key", INT16, "Api key of protocol."),
+        new Field("api_name", STRING, "Api name of protocol."),
+        new Field("api_versions", new ArrayOf(INT16), "Supported api versions of protocol in order of preference."),
+        new Field("api_deprecated_versions", new ArrayOf(INT16), "Deprecated api versions of protocol.")
+    );
+
+    public static final Schema PROTOCOL_VERSION_RESPONSE_V0 = new Schema(
+        new Field("error_code", INT16, "Error code."),
+        new Field("protocol_versions", new ArrayOf(SINGLE_PROTOCOL_VERSION_V0), "An array of single protocol version.")
+    );
+
+    public static final Schema[] PROTOCOL_VERSION_REQUEST = new Schema[] {PROTOCOL_VERSION_REQUEST_V0};
+    public static final Schema[] PROTOCOL_VERSION_RESPONSE = new Schema[] {PROTOCOL_VERSION_RESPONSE_V0};
+
+
     /* an array of all requests and responses with all schema versions; a null value in the inner array means that the
      * particular version is not supported */
     public static final Schema[][] REQUESTS = new Schema[ApiKeys.MAX_API_KEY + 1][];
@@ -720,6 +741,7 @@ public class Protocol {
         REQUESTS[ApiKeys.SYNC_GROUP.id] = SYNC_GROUP_REQUEST;
         REQUESTS[ApiKeys.DESCRIBE_GROUPS.id] = DESCRIBE_GROUPS_REQUEST;
         REQUESTS[ApiKeys.LIST_GROUPS.id] = LIST_GROUPS_REQUEST;
+        REQUESTS[ApiKeys.PROTOCOL_VERSION.id] = PROTOCOL_VERSION_REQUEST;
 
         RESPONSES[ApiKeys.PRODUCE.id] = PRODUCE_RESPONSE;
         RESPONSES[ApiKeys.FETCH.id] = FETCH_RESPONSE;
@@ -738,6 +760,7 @@ public class Protocol {
         RESPONSES[ApiKeys.SYNC_GROUP.id] = SYNC_GROUP_RESPONSE;
         RESPONSES[ApiKeys.DESCRIBE_GROUPS.id] = DESCRIBE_GROUPS_RESPONSE;
         RESPONSES[ApiKeys.LIST_GROUPS.id] = LIST_GROUPS_RESPONSE;
+        RESPONSES[ApiKeys.PROTOCOL_VERSION.id] = PROTOCOL_VERSION_RESPONSE;
 
         /* set the maximum version of each api */
         for (ApiKeys api : ApiKeys.values())

@@ -35,12 +35,13 @@ import kafka.utils.{Logging, SystemTime, ZKGroupTopicDirs, ZkUtils}
 import org.apache.kafka.common.errors.{InvalidTopicException, NotLeaderForPartitionException, UnknownTopicOrPartitionException,
 ClusterAuthorizationException}
 import org.apache.kafka.common.metrics.Metrics
-import org.apache.kafka.common.protocol.{ApiKeys, Errors, SecurityProtocol}
+import org.apache.kafka.common.protocol.{ApiKeys, Errors, Protocol, SecurityProtocol}
 import org.apache.kafka.common.requests.{ListOffsetRequest, ListOffsetResponse, GroupCoordinatorRequest, GroupCoordinatorResponse, ListGroupsResponse,
 DescribeGroupsRequest, DescribeGroupsResponse, HeartbeatRequest, HeartbeatResponse, JoinGroupRequest, JoinGroupResponse,
 LeaveGroupRequest, LeaveGroupResponse, ResponseHeader, ResponseSend, SyncGroupRequest, SyncGroupResponse, LeaderAndIsrRequest, LeaderAndIsrResponse,
-StopReplicaRequest, StopReplicaResponse, ProduceRequest, ProduceResponse, UpdateMetadataRequest, UpdateMetadataResponse}
+StopReplicaRequest, StopReplicaResponse, ProduceRequest, ProduceResponse, UpdateMetadataRequest, UpdateMetadataResponse, ProtocolVersionResponse}
 import org.apache.kafka.common.requests.ProduceResponse.PartitionResponse
+import org.apache.kafka.common.requests.ProtocolVersionResponse.ProtocolVersion
 import org.apache.kafka.common.utils.Utils
 import org.apache.kafka.common.{TopicPartition, Node}
 
@@ -90,6 +91,7 @@ class KafkaApis(val requestChannel: RequestChannel,
         case ApiKeys.SYNC_GROUP => handleSyncGroupRequest(request)
         case ApiKeys.DESCRIBE_GROUPS => handleDescribeGroupRequest(request)
         case ApiKeys.LIST_GROUPS => handleListGroupsRequest(request)
+        case ApiKeys.PROTOCOL_VERSION => handleProtocolVersionRequest(request)
         case requestId => throw new KafkaException("Unknown api code " + requestId)
       }
     } catch {
@@ -976,5 +978,32 @@ class KafkaApis(val requestChannel: RequestChannel,
   def authorizeClusterAction(request: RequestChannel.Request): Unit = {
     if (!authorize(request.session, ClusterAction, Resource.ClusterResource))
       throw new ClusterAuthorizationException(s"Request $request is not authorized.")
+  }
+
+  def getProtocolVersions(): java.util.List[ProtocolVersion] = {
+    val protocolVersions: java.util.List[ProtocolVersion] = new java.util.ArrayList[ProtocolVersion]()
+    ApiKeys.values().foreach(apiKey => {
+      var index: JShort = JShort.valueOf("-1")
+      val reqs = Protocol.REQUESTS(apiKey.id).flatMap(r => {
+        index = (index + 1).toShort
+        if (r != null)
+          Some(index)
+        else
+          None
+      })
+
+      protocolVersions.add(new ProtocolVersion(apiKey.id, apiKey.name, reqs.toSeq.asJava, java.util.Arrays.asList()))
+    })
+    protocolVersions
+  }
+
+  def handleProtocolVersionRequest(request: RequestChannel.Request) {
+    val responseHeader = new ResponseHeader(request.header.correlationId)
+    val responseBody = if (!authorize(request.session, Describe, Resource.ClusterResource)) {
+      ProtocolVersionResponse.fromError(Errors.CLUSTER_AUTHORIZATION_FAILED)
+    } else {
+      new ProtocolVersionResponse(Errors.NONE.code(), getProtocolVersions())
+    }
+    requestChannel.sendResponse(new RequestChannel.Response(request, new ResponseSend(request.connectionId, responseHeader, responseBody)))
   }
 }

@@ -93,7 +93,10 @@ public class RequestResponseTest {
                 createUpdateMetadataResponse(),
                 createLeaderAndIsrRequest(),
                 createLeaderAndIsrRequest().getErrorResponse(0, new UnknownServerException()),
-                createLeaderAndIsrResponse()
+                createLeaderAndIsrResponse(),
+                createProtocolVersionRequest(),
+                createProtocolVersionRequest().getErrorResponse(0, new UnknownServerException()),
+                createProtocolVersionResponse()
         );
 
         for (AbstractRequestResponse req : requestResponseList)
@@ -408,6 +411,15 @@ public class RequestResponseTest {
 
     private AbstractRequestResponse createUpdateMetadataResponse() {
         return new UpdateMetadataResponse(Errors.NONE.code());
+    }
+
+    private AbstractRequest createProtocolVersionRequest() {
+        return new ProtocolVersionRequest();
+    }
+
+    private AbstractRequestResponse createProtocolVersionResponse() {
+        List<ProtocolVersionResponse.ProtocolVersion> protocolVersions = Arrays.asList(new ProtocolVersionResponse.ProtocolVersion((short) 0, "ProduceRequest", Arrays.asList((short) 2, (short) 1, (short) 0), Arrays.asList((short) 1, (short) 0)));
+        return new ProtocolVersionResponse(Errors.NONE.code(), protocolVersions);
     }
 
 

@@ -71,6 +71,8 @@ public abstract class AbstractRequest extends AbstractRequestResponse {
                 return DescribeGroupsRequest.parse(buffer, versionId);
             case LIST_GROUPS:
                 return ListGroupsRequest.parse(buffer, versionId);
+            case PROTOCOL_VERSION:
+                return ProtocolVersionRequest.parse(buffer, versionId);
             default:
                 return null;
         }
