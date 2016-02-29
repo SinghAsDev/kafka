@@ -54,13 +54,6 @@ public class ProtocolVersionResponse extends AbstractRequestResponse {
             this.apiVersions = apiVersions;
             this.apiDeprecatedVersions = apiDeprecatedVersions;
         }
-
-        /*public ProtocolVersion(short apiKey, String apiName, Short[] apiVersions, Short[] apiDeprecatedVersions) {
-            this.apiKey = apiKey;
-            this.apiName = apiName;
-            this.apiVersions = Arrays.asList(apiVersions);
-            this.apiDeprecatedVersions = Arrays.asList(apiDeprecatedVersions);
-        }*/
     }
 
     private final List<ProtocolVersion> protocolVersions;
