@@ -88,6 +88,7 @@ public class Protocol {
 
     public static final Schema[] METADATA_REQUEST = new Schema[] {METADATA_REQUEST_V0};
     public static final Schema[] METADATA_RESPONSE = new Schema[] {METADATA_RESPONSE_V0};
+    public static final short[] DEPRECATED_METADATA_REQUEST = new short[] {};
 
     /* Produce api */
 
@@ -163,6 +164,7 @@ public class Protocol {
                                                                           0));
     public static final Schema[] PRODUCE_REQUEST = new Schema[] {PRODUCE_REQUEST_V0, PRODUCE_REQUEST_V1, PRODUCE_REQUEST_V2};
     public static final Schema[] PRODUCE_RESPONSE = new Schema[] {PRODUCE_RESPONSE_V0, PRODUCE_RESPONSE_V1, PRODUCE_RESPONSE_V2};
+    public static final short[] DEPRECATED_PRODUCE_REQUEST = new short[] {};
 
     /* Offset commit api */
     public static final Schema OFFSET_COMMIT_REQUEST_PARTITION_V0 = new Schema(new Field("partition",
@@ -268,13 +270,13 @@ public class Protocol {
     public static final Schema OFFSET_COMMIT_RESPONSE_V0 = new Schema(new Field("responses",
                                                                                 new ArrayOf(OFFSET_COMMIT_RESPONSE_TOPIC_V0)));
 
-    public static final Schema[] OFFSET_COMMIT_REQUEST = new Schema[] {OFFSET_COMMIT_REQUEST_V0, OFFSET_COMMIT_REQUEST_V1, OFFSET_COMMIT_REQUEST_V2};
-
     /* The response types for V0, V1 and V2 of OFFSET_COMMIT_REQUEST are the same. */
     public static final Schema OFFSET_COMMIT_RESPONSE_V1 = OFFSET_COMMIT_RESPONSE_V0;
     public static final Schema OFFSET_COMMIT_RESPONSE_V2 = OFFSET_COMMIT_RESPONSE_V0;
 
+    public static final Schema[] OFFSET_COMMIT_REQUEST = new Schema[] {OFFSET_COMMIT_REQUEST_V0, OFFSET_COMMIT_REQUEST_V1, OFFSET_COMMIT_REQUEST_V2};
     public static final Schema[] OFFSET_COMMIT_RESPONSE = new Schema[] {OFFSET_COMMIT_RESPONSE_V0, OFFSET_COMMIT_RESPONSE_V1, OFFSET_COMMIT_RESPONSE_V2};
+    public static final short[] DEPRECATED_OFFSET_COMMIT_REQUEST = new short[] {};
 
     /* Offset fetch api */
 
@@ -324,6 +326,7 @@ public class Protocol {
 
     public static final Schema[] OFFSET_FETCH_REQUEST = new Schema[] {OFFSET_FETCH_REQUEST_V0, OFFSET_FETCH_REQUEST_V1};
     public static final Schema[] OFFSET_FETCH_RESPONSE = new Schema[] {OFFSET_FETCH_RESPONSE_V0, OFFSET_FETCH_RESPONSE_V1};
+    public static final short[] DEPRECATED_OFFSET_FETCH_REQUEST = new short[] {};
 
     /* List offset api */
     public static final Schema LIST_OFFSET_REQUEST_PARTITION_V0 = new Schema(new Field("partition",
@@ -365,6 +368,7 @@ public class Protocol {
 
     public static final Schema[] LIST_OFFSET_REQUEST = new Schema[] {LIST_OFFSET_REQUEST_V0};
     public static final Schema[] LIST_OFFSET_RESPONSE = new Schema[] {LIST_OFFSET_RESPONSE_V0};
+    public static final short[] DEPRECATED_LIST_OFFSET_REQUEST = new short[] {};
 
     /* Fetch api */
     public static final Schema FETCH_REQUEST_PARTITION_V0 = new Schema(new Field("partition",
@@ -431,6 +435,7 @@ public class Protocol {
 
     public static final Schema[] FETCH_REQUEST = new Schema[] {FETCH_REQUEST_V0, FETCH_REQUEST_V1, FETCH_REQUEST_V2};
     public static final Schema[] FETCH_RESPONSE = new Schema[] {FETCH_RESPONSE_V0, FETCH_RESPONSE_V1, FETCH_RESPONSE_V2};
+    public static final short[] DEPRECATED_FETCH_REQUEST = new short[] {};
 
     /* List groups api */
     public static final Schema LIST_GROUPS_REQUEST_V0 = new Schema();
@@ -442,6 +447,7 @@ public class Protocol {
 
     public static final Schema[] LIST_GROUPS_REQUEST = new Schema[] {LIST_GROUPS_REQUEST_V0};
     public static final Schema[] LIST_GROUPS_RESPONSE = new Schema[] {LIST_GROUPS_RESPONSE_V0};
+    public static final short[] DEPRECATED_LIST_GROUPS_REQUEST = new short[] {};
 
     /* Describe group api */
     public static final Schema DESCRIBE_GROUPS_REQUEST_V0 = new Schema(new Field("group_ids",
@@ -484,6 +490,7 @@ public class Protocol {
 
     public static final Schema[] DESCRIBE_GROUPS_REQUEST = new Schema[] {DESCRIBE_GROUPS_REQUEST_V0};
     public static final Schema[] DESCRIBE_GROUPS_RESPONSE = new Schema[] {DESCRIBE_GROUPS_RESPONSE_V0};
+    public static final short[] DEPRECATED_DESCRIBE_GROUPS_REQUEST = new short[] {};
 
     /* Group coordinator api */
     public static final Schema GROUP_COORDINATOR_REQUEST_V0 = new Schema(new Field("group_id",
@@ -497,6 +504,7 @@ public class Protocol {
 
     public static final Schema[] GROUP_COORDINATOR_REQUEST = new Schema[] {GROUP_COORDINATOR_REQUEST_V0};
     public static final Schema[] GROUP_COORDINATOR_RESPONSE = new Schema[] {GROUP_COORDINATOR_RESPONSE_V0};
+    public static final short[] DEPRECATED_GROUP_COORDINATOR_REQUEST = new short[] {};
 
     /* Controlled shutdown api */
     public static final Schema CONTROLLED_SHUTDOWN_REQUEST_V1 = new Schema(new Field("broker_id",
@@ -516,6 +524,7 @@ public class Protocol {
     /* V0 is not supported as it would require changes to the request header not to include `clientId` */
     public static final Schema[] CONTROLLED_SHUTDOWN_REQUEST = new Schema[] {null, CONTROLLED_SHUTDOWN_REQUEST_V1};
     public static final Schema[] CONTROLLED_SHUTDOWN_RESPONSE = new Schema[] {null, CONTROLLED_SHUTDOWN_RESPONSE_V1};
+    public static final short[] DEPRECATED_CONTROLLED_SHUTDOWN_REQUEST = new short[] {};
 
     /* Join group api */
     public static final Schema JOIN_GROUP_REQUEST_PROTOCOL_V0 = new Schema(new Field("protocol_name", STRING),
@@ -558,6 +567,7 @@ public class Protocol {
 
     public static final Schema[] JOIN_GROUP_REQUEST = new Schema[] {JOIN_GROUP_REQUEST_V0};
     public static final Schema[] JOIN_GROUP_RESPONSE = new Schema[] {JOIN_GROUP_RESPONSE_V0};
+    public static final short[] DEPRECATED_JOIN_GROUP_REQUEST = new short[] {};
 
     /* SyncGroup api */
     public static final Schema SYNC_GROUP_REQUEST_MEMBER_V0 = new Schema(new Field("member_id", STRING),
@@ -570,6 +580,7 @@ public class Protocol {
                                                                    new Field("member_assignment", BYTES));
     public static final Schema[] SYNC_GROUP_REQUEST = new Schema[] {SYNC_GROUP_REQUEST_V0};
     public static final Schema[] SYNC_GROUP_RESPONSE = new Schema[] {SYNC_GROUP_RESPONSE_V0};
+    public static final short[] DEPRECATED_SYNC_GROUP_REQUEST = new short[] {};
 
     /* Heartbeat api */
     public static final Schema HEARTBEAT_REQUEST_V0 = new Schema(new Field("group_id", STRING, "The group id."),
@@ -584,6 +595,7 @@ public class Protocol {
 
     public static final Schema[] HEARTBEAT_REQUEST = new Schema[] {HEARTBEAT_REQUEST_V0};
     public static final Schema[] HEARTBEAT_RESPONSE = new Schema[] {HEARTBEAT_RESPONSE_V0};
+    public static final short[] DEPRECATED_HEARTBEAT_REQUEST = new short[] {};
 
     /* Leave group api */
     public static final Schema LEAVE_GROUP_REQUEST_V0 = new Schema(new Field("group_id", STRING, "The group id."),
@@ -595,6 +607,7 @@ public class Protocol {
 
     public static final Schema[] LEAVE_GROUP_REQUEST = new Schema[] {LEAVE_GROUP_REQUEST_V0};
     public static final Schema[] LEAVE_GROUP_RESPONSE = new Schema[] {LEAVE_GROUP_RESPONSE_V0};
+    public static final short[] DEPRECATED_LEAVE_GROUP_REQUEST = new short[] {};
 
     /* Leader and ISR api */
     public static final Schema LEADER_AND_ISR_REQUEST_PARTITION_STATE_V0 =
@@ -628,6 +641,7 @@ public class Protocol {
 
     public static final Schema[] LEADER_AND_ISR_REQUEST = new Schema[] {LEADER_AND_ISR_REQUEST_V0};
     public static final Schema[] LEADER_AND_ISR_RESPONSE = new Schema[] {LEADER_AND_ISR_RESPONSE_V0};
+    public static final short[] DEPRECATED_LEADER_AND_ISR_REQUEST = new short[] {};
 
     /* Replica api */
     public static final Schema STOP_REPLICA_REQUEST_PARTITION_V0 = new Schema(new Field("topic", STRING, "Topic name."),
@@ -651,6 +665,7 @@ public class Protocol {
 
     public static final Schema[] STOP_REPLICA_REQUEST = new Schema[] {STOP_REPLICA_REQUEST_V0};
     public static final Schema[] STOP_REPLICA_RESPONSE = new Schema[] {STOP_REPLICA_RESPONSE_V0};
+    public static final short[] DEPRECATED_STOP_REPLICA_REQUEST = new short[] {};
 
     /* Update metadata api */
 
@@ -693,6 +708,7 @@ public class Protocol {
 
     public static final Schema[] UPDATE_METADATA_REQUEST = new Schema[] {UPDATE_METADATA_REQUEST_V0, UPDATE_METADATA_REQUEST_V1};
     public static final Schema[] UPDATE_METADATA_RESPONSE = new Schema[] {UPDATE_METADATA_RESPONSE_V0, UPDATE_METADATA_RESPONSE_V1};
+    public static final short[] DEPRECATED_UPDATE_METADATA_REQUEST = new short[] {};
 
     /* Protocol version api */
     public static final Schema PROTOCOL_VERSION_REQUEST_V0 = new Schema();
@@ -711,12 +727,14 @@ public class Protocol {
 
     public static final Schema[] PROTOCOL_VERSION_REQUEST = new Schema[] {PROTOCOL_VERSION_REQUEST_V0};
     public static final Schema[] PROTOCOL_VERSION_RESPONSE = new Schema[] {PROTOCOL_VERSION_RESPONSE_V0};
+    public static final short[] DEPRECATED_PROTOCOL_VERSION_REQUEST = new short[] {};
 
 
     /* an array of all requests and responses with all schema versions; a null value in the inner array means that the
      * particular version is not supported */
     public static final Schema[][] REQUESTS = new Schema[ApiKeys.MAX_API_KEY + 1][];
     public static final Schema[][] RESPONSES = new Schema[ApiKeys.MAX_API_KEY + 1][];
+    public static final short[][] DEPRECATED_VERSIONS = new short[ApiKeys.MAX_API_KEY + 1][];
 
     /* the latest version of each api */
     public static final short[] CURR_VERSION = new short[ApiKeys.MAX_API_KEY + 1];
@@ -759,6 +777,25 @@ public class Protocol {
         RESPONSES[ApiKeys.DESCRIBE_GROUPS.id] = DESCRIBE_GROUPS_RESPONSE;
         RESPONSES[ApiKeys.LIST_GROUPS.id] = LIST_GROUPS_RESPONSE;
         RESPONSES[ApiKeys.PROTOCOL_VERSION.id] = PROTOCOL_VERSION_RESPONSE;
+
+        DEPRECATED_VERSIONS[ApiKeys.PRODUCE.id] = DEPRECATED_PRODUCE_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.FETCH.id] = DEPRECATED_FETCH_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.LIST_OFFSETS.id] = DEPRECATED_LIST_OFFSET_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.METADATA.id] = DEPRECATED_METADATA_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.LEADER_AND_ISR.id] = DEPRECATED_LEADER_AND_ISR_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.STOP_REPLICA.id] = DEPRECATED_STOP_REPLICA_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.UPDATE_METADATA_KEY.id] = DEPRECATED_UPDATE_METADATA_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.CONTROLLED_SHUTDOWN_KEY.id] = DEPRECATED_CONTROLLED_SHUTDOWN_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.OFFSET_COMMIT.id] = DEPRECATED_OFFSET_COMMIT_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.OFFSET_FETCH.id] = DEPRECATED_OFFSET_FETCH_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.GROUP_COORDINATOR.id] = DEPRECATED_GROUP_COORDINATOR_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.JOIN_GROUP.id] = DEPRECATED_JOIN_GROUP_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.HEARTBEAT.id] = DEPRECATED_HEARTBEAT_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.LEAVE_GROUP.id] = DEPRECATED_LEAVE_GROUP_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.SYNC_GROUP.id] = DEPRECATED_SYNC_GROUP_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.DESCRIBE_GROUPS.id] = DEPRECATED_DESCRIBE_GROUPS_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.LIST_GROUPS.id] = DEPRECATED_LIST_GROUPS_REQUEST;
+        DEPRECATED_VERSIONS[ApiKeys.PROTOCOL_VERSION.id] = DEPRECATED_PROTOCOL_VERSION_REQUEST;
 
         /* set the maximum version of each api */
         for (ApiKeys api : ApiKeys.values())

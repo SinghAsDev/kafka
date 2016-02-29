@@ -41,8 +41,8 @@ class ProtocolVersionsTest extends ZooKeeperTestHarness {
       val ver: ProtocolVersion = version.asInstanceOf[ProtocolVersion]
       assert(ver.apiKey == apiKey.id)
       assert(ver.apiName == apiKey.name)
-      assert(ver.apiVersions.size() == Protocol.REQUESTS(apiKey.id).count(x => x!= null))
-      assert(ver.apiDeprecatedVersions.size() == 0)
+      assert(ver.apiVersions.size == Protocol.REQUESTS(apiKey.id).count(x => x!= null))
+      assert(ver.apiDeprecatedVersions.size == Protocol.DEPRECATED_VERSIONS(apiKey.id).size)
     }
   }
 }

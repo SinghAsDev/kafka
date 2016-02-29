@@ -19,6 +19,7 @@ package kafka.server
 
 import java.nio.ByteBuffer
 import java.lang.{Long => JLong, Short => JShort}
+import java.util
 
 import kafka.admin.AdminUtils
 import kafka.api._
@@ -992,7 +993,7 @@ class KafkaApis(val requestChannel: RequestChannel,
           None
       })
 
-      protocolVersions.add(new ProtocolVersion(apiKey.id, apiKey.name, reqs.toSeq.asJava, java.util.Arrays.asList()))
+      protocolVersions.add(new ProtocolVersion(apiKey.id, apiKey.name, reqs.toSeq.asJava, Protocol.DEPRECATED_VERSIONS(apiKey.id).toSeq.asJava.asInstanceOf[java.util.List[JShort]]))
     })
     protocolVersions
   }
