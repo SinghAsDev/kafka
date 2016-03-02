@@ -17,6 +17,13 @@ import org.apache.kafka.common.protocol.types.Struct;
 
 import java.nio.ByteBuffer;
 
+/**
+ * Response sent by server in response to requests that are not supported by server.
+ *
+ * This should cause parse error on client side and clients can take that as an indication of
+ * server not supporting the request it sent. Clients can use PROTOCOL_VERSION request to get
+ * information on supported protocol versions by server.
+ */
 public class EmptyResponse extends AbstractRequestResponse {
     private static final Struct EMPTY_STRUCT = new Struct(new Schema());
 

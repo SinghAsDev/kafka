@@ -37,7 +37,7 @@ public class ProtocolVersionResponse extends AbstractRequestResponse {
     /**
      * Possible error codes:
      * <p/>
-     * AUTHORIZATION_FAILED (29)
+     * CLUSTER_AUTHORIZATION_FAILED (31)
      */
 
     private final short errorCode;

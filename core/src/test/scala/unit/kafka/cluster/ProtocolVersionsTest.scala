@@ -17,7 +17,7 @@
 
 package unit.kafka.cluster
 
-import kafka.server.KafkaConfig
+import kafka.server.{KafkaApis, KafkaConfig}
 import kafka.utils.TestUtils
 import kafka.zk.ZooKeeperTestHarness
 import org.apache.kafka.common.protocol.ApiKeys
@@ -25,17 +25,12 @@ import org.apache.kafka.common.protocol.Protocol
 import org.apache.kafka.common.requests.ProtocolVersionResponse.ProtocolVersion
 import org.junit.Test
 
-class ProtocolVersionsTest extends ZooKeeperTestHarness {
+class ProtocolVersionsTest {
 
   @Test
   def testGetProtocolVersions() {
-
-    val config = KafkaConfig.fromProps(TestUtils.createBrokerConfig(0, zkConnect, enableControlledShutdown = false))
-    val server = TestUtils.createServer(config)
-    val versions: java.util.List[ProtocolVersion] = server.apis.getProtocolVersions()
+    val versions: java.util.List[ProtocolVersion] = KafkaApis.protocolVersions
     assert(versions.size() == ApiKeys.values.size)
-    versions.toArray.foreach( version => {
-    })
 
     for ((version, apiKey) <- versions.toArray zip ApiKeys.values) {
       val ver: ProtocolVersion = version.asInstanceOf[ProtocolVersion]

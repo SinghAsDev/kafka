@@ -19,7 +19,6 @@ package kafka.server
 
 import java.nio.ByteBuffer
 import java.lang.{Long => JLong, Short => JShort}
-import java.util
 
 import kafka.admin.AdminUtils
 import kafka.api._
@@ -48,6 +47,28 @@ import org.apache.kafka.common.{TopicPartition, Node}
 
 import scala.collection._
 import scala.collection.JavaConverters._
+
+object KafkaApis {
+
+  val protocolVersions = getProtocolVersions
+
+  private def getProtocolVersions(): java.util.List[ProtocolVersion] = {
+    val protocolVersions: java.util.List[ProtocolVersion] = new java.util.ArrayList[ProtocolVersion]()
+    ApiKeys.values().foreach(apiKey => {
+      var index: JShort = JShort.valueOf("-1")
+      val reqs = Protocol.REQUESTS(apiKey.id).flatMap(r => {
+        index = (index + 1).toShort
+        if (r != null)
+          Some(index)
+        else
+          None
+      })
+
+      protocolVersions.add(new ProtocolVersion(apiKey.id, apiKey.name, reqs.toSeq.asJava, Protocol.DEPRECATED_VERSIONS(apiKey.id).toSeq.asJava.asInstanceOf[java.util.List[JShort]]))
+    })
+    protocolVersions
+  }
+}
 
 /**
  * Logic to handle the various Kafka requests
@@ -981,29 +1002,12 @@ class KafkaApis(val requestChannel: RequestChannel,
       throw new ClusterAuthorizationException(s"Request $request is not authorized.")
   }
 
-  def getProtocolVersions(): java.util.List[ProtocolVersion] = {
-    val protocolVersions: java.util.List[ProtocolVersion] = new java.util.ArrayList[ProtocolVersion]()
-    ApiKeys.values().foreach(apiKey => {
-      var index: JShort = JShort.valueOf("-1")
-      val reqs = Protocol.REQUESTS(apiKey.id).flatMap(r => {
-        index = (index + 1).toShort
-        if (r != null)
-          Some(index)
-        else
-          None
-      })
-
-      protocolVersions.add(new ProtocolVersion(apiKey.id, apiKey.name, reqs.toSeq.asJava, Protocol.DEPRECATED_VERSIONS(apiKey.id).toSeq.asJava.asInstanceOf[java.util.List[JShort]]))
-    })
-    protocolVersions
-  }
-
   def handleProtocolVersionRequest(request: RequestChannel.Request) {
     val responseHeader = new ResponseHeader(request.header.correlationId)
     val responseBody = if (!authorize(request.session, Describe, Resource.ClusterResource)) {
       ProtocolVersionResponse.fromError(Errors.CLUSTER_AUTHORIZATION_FAILED)
     } else {
-      new ProtocolVersionResponse(Errors.NONE.code(), getProtocolVersions())
+      new ProtocolVersionResponse(Errors.NONE.code, KafkaApis.protocolVersions)
     }
     requestChannel.sendResponse(new RequestChannel.Response(request, new ResponseSend(request.connectionId, responseHeader, responseBody)))
   }
