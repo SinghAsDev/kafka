@@ -76,7 +76,7 @@ object AclCommand {
     finally CoreUtils.swallow(authZ.close())
   }
 
-  def addAcl(opts: AclCommandOptions) {
+  private[admin] def addAcl(opts: AclCommandOptions) {
     withAuthorizer(opts) { authorizer =>
       val resourceToAcl = getResourceToAcls(opts)
 
@@ -95,7 +95,7 @@ object AclCommand {
     }
   }
 
-  def removeAcl(opts: AclCommandOptions) {
+  private[admin] def removeAcl(opts: AclCommandOptions) {
     withAuthorizer(opts) { authorizer =>
       val resourceToAcl = getResourceToAcls(opts)
 

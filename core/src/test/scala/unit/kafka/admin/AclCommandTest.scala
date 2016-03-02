@@ -134,7 +134,7 @@ class AclCommandTest extends ZooKeeperTestHarness with Logging {
 
 
     intercept[IllegalArgumentException] {
-      AclCommand.addAcl(new AclCommandOptions(args ++ Seq("--remove", "--allow-principal", "user:user1", "--operation", "All", "--topic", "t1")))
+      AclCommand.removeAcl(new AclCommandOptions(args ++ Seq("--remove", "--allow-principal", "user:user1", "--operation", "All", "--topic", "t1")))
     }
   }
 
