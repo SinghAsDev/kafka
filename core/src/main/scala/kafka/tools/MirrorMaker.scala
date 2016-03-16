@@ -32,7 +32,7 @@ import kafka.message.MessageAndMetadata
 import kafka.metrics.KafkaMetricsGroup
 import kafka.serializer.DefaultDecoder
 import kafka.utils.{CommandLineUtils, CoreUtils, Logging}
-import org.apache.kafka.clients.consumer.{OffsetAndMetadata, Consumer, ConsumerRecord, KafkaConsumer}
+import org.apache.kafka.clients.consumer._
 import org.apache.kafka.clients.producer.internals.ErrorLoggingCallback
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.TopicPartition
@@ -572,7 +572,15 @@ object MirrorMaker extends Logging with KafkaMetricsGroup {
     }
 
     override def commit() {
-      consumer.commitSync(offsets.map { case (tp, offset) =>  (tp, new OffsetAndMetadata(offset, ""))})
+      try {
+        consumer.commitSync(offsets.map { case (tp, offset) => (tp, new OffsetAndMetadata(offset, "")) })
+      } catch {
+        case cfe: CommitFailedException =>
+          // This can happen if consumer rebalance is in progress. Offsets must have already been
+          // committed in InternalRebalanceListenerForNewConsumer.onPartitionsRevoked.
+          // Ignoring the exception.
+        case e: Exception => throw e
+      }
       offsets.clear()
     }
   }
