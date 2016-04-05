@@ -718,10 +718,27 @@ public class Protocol {
     public static final Schema[] UPDATE_METADATA_REQUEST = new Schema[] {UPDATE_METADATA_REQUEST_V0, UPDATE_METADATA_REQUEST_V1, UPDATE_METADATA_REQUEST_V2};
     public static final Schema[] UPDATE_METADATA_RESPONSE = new Schema[] {UPDATE_METADATA_RESPONSE_V0, UPDATE_METADATA_RESPONSE_V1, UPDATE_METADATA_RESPONSE_V2};
 
+    /* ApiVersion api */
+    public static final Schema API_VERSION_REQUEST_V0 = new Schema(
+            new Field("api_keys", new ArrayOf(INT16), "Apis for which their supported versions have to be returned."));
+
+    public static final Schema API_VERSION_V0 = new Schema(
+            new Field("api_key", INT16, "Api key."),
+            new Field("min_version", INT16, "Minimum supported version."),
+            new Field("max_version", INT16, "Maximum supported version."));
+
+    public static final Schema API_VERSION_RESPONSE_V0 = new Schema(
+            new Field("error_code", INT16, "Error code."),
+            new Field("api_versions", new ArrayOf(API_VERSION_V0), ""));
+
+    public static final Schema[] API_VERSION_REQUEST = new Schema[] {API_VERSION_REQUEST_V0};
+    public static final Schema[] API_VERSION_RESPONSE = new Schema[] {API_VERSION_RESPONSE_V0};
+
     /* an array of all requests and responses with all schema versions; a null value in the inner array means that the
      * particular version is not supported */
     public static final Schema[][] REQUESTS = new Schema[ApiKeys.MAX_API_KEY + 1][];
     public static final Schema[][] RESPONSES = new Schema[ApiKeys.MAX_API_KEY + 1][];
+    public static final short[] MIN_VERSIONS = new short[ApiKeys.MAX_API_KEY + 1];
 
     /* the latest version of each api */
     public static final short[] CURR_VERSION = new short[ApiKeys.MAX_API_KEY + 1];
@@ -744,6 +761,7 @@ public class Protocol {
         REQUESTS[ApiKeys.SYNC_GROUP.id] = SYNC_GROUP_REQUEST;
         REQUESTS[ApiKeys.DESCRIBE_GROUPS.id] = DESCRIBE_GROUPS_REQUEST;
         REQUESTS[ApiKeys.LIST_GROUPS.id] = LIST_GROUPS_REQUEST;
+        REQUESTS[ApiKeys.API_VERSION.id] = API_VERSION_REQUEST;
 
         RESPONSES[ApiKeys.PRODUCE.id] = PRODUCE_RESPONSE;
         RESPONSES[ApiKeys.FETCH.id] = FETCH_RESPONSE;
@@ -762,6 +780,26 @@ public class Protocol {
         RESPONSES[ApiKeys.SYNC_GROUP.id] = SYNC_GROUP_RESPONSE;
         RESPONSES[ApiKeys.DESCRIBE_GROUPS.id] = DESCRIBE_GROUPS_RESPONSE;
         RESPONSES[ApiKeys.LIST_GROUPS.id] = LIST_GROUPS_RESPONSE;
+        RESPONSES[ApiKeys.API_VERSION.id] = API_VERSION_RESPONSE;
+
+        MIN_VERSIONS[ApiKeys.PRODUCE.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.FETCH.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.LIST_OFFSETS.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.METADATA.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.LEADER_AND_ISR.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.STOP_REPLICA.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.UPDATE_METADATA_KEY.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.CONTROLLED_SHUTDOWN_KEY.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.OFFSET_COMMIT.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.OFFSET_FETCH.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.GROUP_COORDINATOR.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.JOIN_GROUP.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.HEARTBEAT.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.LEAVE_GROUP.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.SYNC_GROUP.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.DESCRIBE_GROUPS.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.LIST_GROUPS.id] = (short) 0;
+        MIN_VERSIONS[ApiKeys.API_VERSION.id] = (short) 0;
 
         /* set the maximum version of each api */
         for (ApiKeys api : ApiKeys.values())

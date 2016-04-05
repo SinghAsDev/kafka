@@ -91,7 +91,10 @@ public class RequestResponseTest {
                 createUpdateMetadataResponse(),
                 createLeaderAndIsrRequest(),
                 createLeaderAndIsrRequest().getErrorResponse(0, new UnknownServerException()),
-                createLeaderAndIsrResponse()
+                createLeaderAndIsrResponse(),
+                createApiVersionRequest(),
+                createApiVersionRequest().getErrorResponse(0, new UnknownServerException()),
+                createApiVersionResponse()
         );
 
         for (AbstractRequestResponse req : requestResponseList)
@@ -423,6 +426,16 @@ public class RequestResponseTest {
 
     private AbstractRequestResponse createUpdateMetadataResponse() {
         return new UpdateMetadataResponse(Errors.NONE.code());
+    }
+
+
+    private AbstractRequest createApiVersionRequest() {
+        return new ApiVersionRequest(Arrays.asList((short) 0));
+    }
+
+    private AbstractRequestResponse createApiVersionResponse() {
+        List<ApiVersionResponse.ApiVersion> apiVersions = Arrays.asList(new ApiVersionResponse.ApiVersion((short) 0, (short) 0, (short) 2));
+        return new ApiVersionResponse(Errors.NONE.code(), apiVersions);
     }
 
 

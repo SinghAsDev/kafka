@@ -36,12 +36,12 @@ import kafka.utils.{Logging, SystemTime, ZKGroupTopicDirs, ZkUtils}
 import org.apache.kafka.common.errors.{InvalidTopicException, NotLeaderForPartitionException, UnknownTopicOrPartitionException,
 ClusterAuthorizationException}
 import org.apache.kafka.common.metrics.Metrics
-import org.apache.kafka.common.protocol.{ApiKeys, Errors, SecurityProtocol}
+import org.apache.kafka.common.protocol.{Protocol, ApiKeys, Errors, SecurityProtocol}
 import org.apache.kafka.common.requests.{ListOffsetRequest, ListOffsetResponse, GroupCoordinatorRequest, GroupCoordinatorResponse, ListGroupsResponse,
 DescribeGroupsRequest, DescribeGroupsResponse, HeartbeatRequest, HeartbeatResponse, JoinGroupRequest, JoinGroupResponse,
 LeaveGroupRequest, LeaveGroupResponse, ResponseHeader, ResponseSend, SyncGroupRequest, SyncGroupResponse, LeaderAndIsrRequest, LeaderAndIsrResponse,
 StopReplicaRequest, StopReplicaResponse, ProduceRequest, ProduceResponse, UpdateMetadataRequest, UpdateMetadataResponse,
-MetadataRequest, MetadataResponse, OffsetCommitRequest, OffsetCommitResponse, OffsetFetchRequest, OffsetFetchResponse}
+MetadataRequest, MetadataResponse, OffsetCommitRequest, OffsetCommitResponse, OffsetFetchRequest, OffsetFetchResponse, ApiVersionRequest, ApiVersionResponse}
 import org.apache.kafka.common.requests.ProduceResponse.PartitionResponse
 import org.apache.kafka.common.utils.Utils
 import org.apache.kafka.common.{TopicPartition, Node}
@@ -49,6 +49,20 @@ import org.apache.kafka.common.internals.TopicConstants
 
 import scala.collection._
 import scala.collection.JavaConverters._
+
+object KafkaApis {
+
+  val protocolVersions = getProtocolVersions
+
+  private def getProtocolVersions(): java.util.List[ApiVersionResponse.ApiVersion] = {
+    val apiVersions: java.util.List[ApiVersionResponse.ApiVersion] = new java.util.ArrayList[ApiVersionResponse.ApiVersion]()
+    ApiKeys.values().foreach(apiKey => {
+      apiVersions.add(new ApiVersionResponse.ApiVersion(apiKey.id, Protocol.MIN_VERSIONS(apiKey.id), Protocol.CURR_VERSION(apiKey.id)))
+    })
+    apiVersions
+  }
+}
+
 
 /**
  * Logic to handle the various Kafka requests
@@ -93,6 +107,7 @@ class KafkaApis(val requestChannel: RequestChannel,
         case ApiKeys.SYNC_GROUP => handleSyncGroupRequest(request)
         case ApiKeys.DESCRIBE_GROUPS => handleDescribeGroupRequest(request)
         case ApiKeys.LIST_GROUPS => handleListGroupsRequest(request)
+        case ApiKeys.API_VERSION => handleApiVersionRequest(request)
         case requestId => throw new KafkaException("Unknown api code " + requestId)
       }
     } catch {
@@ -991,6 +1006,17 @@ class KafkaApis(val requestChannel: RequestChannel,
         leaveGroupRequest.memberId(),
         sendResponseCallback)
     }
+  }
+
+  def handleApiVersionRequest(request: RequestChannel.Request) {
+    val apiVersionRequest = request.body.asInstanceOf[ApiVersionRequest]
+    val requestedApiKeys = apiVersionRequest.getApiKeys
+    val responseHeader = new ResponseHeader(request.header.correlationId)
+    val responseBody = if (!authorize(request.session, Describe, Resource.ClusterResource))
+      ApiVersionResponse.fromError(Errors.CLUSTER_AUTHORIZATION_FAILED)
+    else
+      new ApiVersionResponse(Errors.NONE.code, KafkaApis.protocolVersions.asScala.filter(x => requestedApiKeys.isEmpty || requestedApiKeys.contains(x.apiKey)).asJava)
+    requestChannel.sendResponse(new RequestChannel.Response(request, new ResponseSend(request.connectionId, responseHeader, responseBody)))
   }
 
   def close() {
