@@ -32,16 +32,19 @@ public class ApiVersionRequest extends AbstractRequest {
 
     public ApiVersionRequest(List<Short> apiKeys) {
         super(new Struct(CURRENT_SCHEMA));
-        struct.set(API_KEYS_KEY_NAME, apiKeys.toArray());
+        struct.set(API_KEYS_KEY_NAME, apiKeys == null ? null : apiKeys.toArray());
         this.apiKeys = apiKeys;
     }
 
     public ApiVersionRequest(Struct struct) {
         super(struct);
         Object[] apiKeysArray = struct.getArray(API_KEYS_KEY_NAME);
-        this.apiKeys = new ArrayList<>();
-        for (Object apiKeyObj: apiKeysArray) {
-            apiKeys.add((Short) apiKeyObj);
+        if (apiKeysArray == null)
+            this.apiKeys = null;
+        else {
+            this.apiKeys = new ArrayList<>();
+            for (Object apiKeyObj : apiKeysArray)
+                apiKeys.add((Short) apiKeyObj);
         }
     }
 

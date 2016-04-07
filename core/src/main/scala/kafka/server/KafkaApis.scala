@@ -52,12 +52,12 @@ import scala.collection.JavaConverters._
 
 object KafkaApis {
 
-  val protocolVersions = getProtocolVersions
+  val apiVersions = getApiVersions
 
-  private def getProtocolVersions(): java.util.List[ApiVersionResponse.ApiVersion] = {
+  private def getApiVersions(): java.util.List[ApiVersionResponse.ApiVersion] = {
     val apiVersions: java.util.List[ApiVersionResponse.ApiVersion] = new java.util.ArrayList[ApiVersionResponse.ApiVersion]()
     ApiKeys.values().foreach(apiKey => {
-      apiVersions.add(new ApiVersionResponse.ApiVersion(apiKey.id, Protocol.MIN_VERSIONS(apiKey.id), Protocol.CURR_VERSION(apiKey.id)))
+      apiVersions.add(new ApiVersionResponse.ApiVersion(apiKey.id, Protocol.MIN_VERSION(apiKey.id), Protocol.CURR_VERSION(apiKey.id)))
     })
     apiVersions
   }
@@ -1015,7 +1015,7 @@ class KafkaApis(val requestChannel: RequestChannel,
     val responseBody = if (!authorize(request.session, Describe, Resource.ClusterResource))
       ApiVersionResponse.fromError(Errors.CLUSTER_AUTHORIZATION_FAILED)
     else
-      new ApiVersionResponse(Errors.NONE.code, KafkaApis.protocolVersions.asScala.filter(x => requestedApiKeys.isEmpty || requestedApiKeys.contains(x.apiKey)).asJava)
+      new ApiVersionResponse(Errors.NONE.code, KafkaApis.apiVersions.asScala.filter(x => requestedApiKeys == null || requestedApiKeys.contains(x.apiKey)).asJava)
     requestChannel.sendResponse(new RequestChannel.Response(request, new ResponseSend(request.connectionId, responseHeader, responseBody)))
   }
 

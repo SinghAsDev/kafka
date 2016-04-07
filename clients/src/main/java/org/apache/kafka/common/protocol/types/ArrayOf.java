@@ -23,14 +23,27 @@ import java.nio.ByteBuffer;
  */
 public class ArrayOf extends Type {
 
+    private static final int NEGATIVE_LENGTH = -1;
+
     private final Type type;
+    private boolean isNullable;
 
     public ArrayOf(Type type) {
+        this(type, false);
+    }
+
+    public ArrayOf(Type type, boolean isNullable) {
         this.type = type;
+        this.isNullable = isNullable;
     }
 
     @Override
     public void write(ByteBuffer buffer, Object o) {
+        if (o == null) {
+            buffer.putInt(NEGATIVE_LENGTH);
+            return;
+        }
+
         Object[] objs = (Object[]) o;
         int size = objs.length;
         buffer.putInt(size);
@@ -41,6 +54,8 @@ public class ArrayOf extends Type {
     @Override
     public Object read(ByteBuffer buffer) {
         int size = buffer.getInt();
+        if (this.isNullable && size == NEGATIVE_LENGTH)
+            return null;
         if (size < 0)
             throw new SchemaException("Array size " + size + " cannot be negative");
         if (size > buffer.remaining())
@@ -55,6 +70,8 @@ public class ArrayOf extends Type {
     public int sizeOf(Object o) {
         Object[] objs = (Object[]) o;
         int size = 4;
+        if (this.isNullable && o == null)
+            return size;
         for (int i = 0; i < objs.length; i++)
             size += type.sizeOf(objs[i]);
         return size;
@@ -66,12 +83,15 @@ public class ArrayOf extends Type {
 
     @Override
     public String toString() {
-        return "ARRAY(" + type + ")";
+        return (this.isNullable ? "NULLABLE_" : "") + "ARRAY(" + type + ")";
     }
 
     @Override
     public Object[] validate(Object item) {
         try {
+            if (this.isNullable && item == null)
+                return null;
+
             Object[] array = (Object[]) item;
             for (int i = 0; i < array.length; i++)
                 type.validate(array[i]);
@@ -79,5 +99,10 @@ public class ArrayOf extends Type {
         } catch (ClassCastException e) {
             throw new SchemaException("Not an Object[].");
         }
+    }
+
+    @Override
+    public boolean isNullable() {
+        return this.isNullable;
     }
 }

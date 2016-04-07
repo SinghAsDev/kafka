@@ -308,8 +308,10 @@ public class Struct {
             Field f = this.schema.get(i);
             if (f.type() instanceof ArrayOf) {
                 Object[] arrayObject = (Object []) this.get(f);
-                for (Object arrayItem: arrayObject)
-                    result = prime * result + arrayItem.hashCode();
+                if (arrayObject != null) {
+                    for (Object arrayItem : arrayObject)
+                        result = prime * result + arrayItem.hashCode();
+                }
             } else {
                 Object field = this.get(f);
                 if (field != null) {

@@ -720,7 +720,7 @@ public class Protocol {
 
     /* ApiVersion api */
     public static final Schema API_VERSION_REQUEST_V0 = new Schema(
-            new Field("api_keys", new ArrayOf(INT16), "Apis for which their supported versions have to be returned."));
+            new Field("api_keys", new ArrayOf(INT16, true), "Apis for which their supported versions have to be returned. Null array would return versions for all Apis."));
 
     public static final Schema API_VERSION_V0 = new Schema(
             new Field("api_key", INT16, "Api key."),
@@ -742,6 +742,9 @@ public class Protocol {
 
     /* the latest version of each api */
     public static final short[] CURR_VERSION = new short[ApiKeys.MAX_API_KEY + 1];
+
+    /* the minimum supported version of each api */
+    public static final short[] MIN_VERSION = new short[ApiKeys.MAX_API_KEY + 1];
 
     static {
         REQUESTS[ApiKeys.PRODUCE.id] = PRODUCE_REQUEST;
@@ -782,34 +785,31 @@ public class Protocol {
         RESPONSES[ApiKeys.LIST_GROUPS.id] = LIST_GROUPS_RESPONSE;
         RESPONSES[ApiKeys.API_VERSION.id] = API_VERSION_RESPONSE;
 
-        MIN_VERSIONS[ApiKeys.PRODUCE.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.FETCH.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.LIST_OFFSETS.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.METADATA.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.LEADER_AND_ISR.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.STOP_REPLICA.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.UPDATE_METADATA_KEY.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.CONTROLLED_SHUTDOWN_KEY.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.OFFSET_COMMIT.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.OFFSET_FETCH.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.GROUP_COORDINATOR.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.JOIN_GROUP.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.HEARTBEAT.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.LEAVE_GROUP.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.SYNC_GROUP.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.DESCRIBE_GROUPS.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.LIST_GROUPS.id] = (short) 0;
-        MIN_VERSIONS[ApiKeys.API_VERSION.id] = (short) 0;
-
-        /* set the maximum version of each api */
-        for (ApiKeys api : ApiKeys.values())
+        /* set the minimum and maximum version of each api */
+        for (ApiKeys api : ApiKeys.values()) {
             CURR_VERSION[api.id] = (short) (REQUESTS[api.id].length - 1);
+            for (int i = 0; i < REQUESTS[api.id].length; ++i)
+                if (REQUESTS[api.id][i] != null) {
+                    MIN_VERSION[api.id] = (short) i;
+                    break;
+                }
+        }
 
-        /* sanity check that we have the same number of request and response versions for each api */
-        for (ApiKeys api : ApiKeys.values())
+        /* sanity check:
+             - we have the same number of request and response versions for each api
+             - minimum supported version is same for request and response of each api */
+        for (ApiKeys api : ApiKeys.values()) {
             if (REQUESTS[api.id].length != RESPONSES[api.id].length)
                 throw new IllegalStateException(REQUESTS[api.id].length + " request versions for api " + api.name
                         + " but " + RESPONSES[api.id].length + " response versions.");
+
+            for (int i = 0; i < REQUESTS[api.id].length; ++i)
+                if ((REQUESTS[api.id][i] == null && RESPONSES[api.id][i] != null) ||
+                        (REQUESTS[api.id][i] != null && RESPONSES[api.id][i] == null))
+                    throw new IllegalStateException("Version " + i + " of api " + api.id + " has inconsistency in" +
+                            "request and response. One of request and response of a version can not be marked" +
+                            "as null.");
+        }
     }
 
     private static String indentString(int size) {
