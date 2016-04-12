@@ -26,7 +26,9 @@ import java.util.Set;
 
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.protocol.ApiKeys;
+import org.apache.kafka.common.protocol.Protocol;
 import org.apache.kafka.common.protocol.types.Struct;
+import org.apache.kafka.common.requests.ApiVersionResponse;
 import org.apache.kafka.common.requests.RequestHeader;
 import org.apache.kafka.common.utils.Time;
 
@@ -196,6 +198,16 @@ public class MockClient implements KafkaClient {
 
     @Override
     public void wakeup() {
+    }
+
+    @Override
+    public List<ApiVersionResponse.ApiVersion> apiVersions(Node node) {
+        List<ApiVersionResponse.ApiVersion> apiVersions = new ArrayList<>();
+        for (ApiKeys apiKey: ApiKeys.values()) {
+            apiVersions.add(new ApiVersionResponse.ApiVersion(apiKey.id, Protocol.MIN_VERSIONS[apiKey.id], Protocol.CURR_VERSION[apiKey.id]));
+        }
+
+        return apiVersions;
     }
 
     @Override

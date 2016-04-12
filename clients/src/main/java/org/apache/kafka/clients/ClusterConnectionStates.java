@@ -114,6 +114,21 @@ final class ClusterConnectionStates {
         nodeState.lastConnectAttemptMs = now;
     }
 
+    public void apiVersionsFetching(String id) {
+        NodeConnectionState nodeState = nodeState(id);
+        nodeState.state = ConnectionState.FETCHING_API_VERSIONS;
+    }
+
+    public void apiVersionsFetched(String id) {
+        NodeConnectionState nodeState = nodeState(id);
+        nodeState.state = ConnectionState.FETCHED_API_VERSIONS;
+    }
+
+    public boolean isApiVersionsFetched(String id) {
+        NodeConnectionState state = nodeState.get(id);
+        return state != null && state.state == ConnectionState.FETCHED_API_VERSIONS;
+    }
+
     /**
      * Remove the given node from the tracked connection states. The main difference between this and `disconnected`
      * is the impact on `connectionDelay`: it will be 0 after this call whereas `reconnectBackoffMs` will be taken

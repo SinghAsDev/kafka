@@ -57,7 +57,7 @@ object KafkaApis {
   private def getApiVersions(): java.util.List[ApiVersionResponse.ApiVersion] = {
     val apiVersions: java.util.List[ApiVersionResponse.ApiVersion] = new java.util.ArrayList[ApiVersionResponse.ApiVersion]()
     ApiKeys.values().foreach(apiKey => {
-      apiVersions.add(new ApiVersionResponse.ApiVersion(apiKey.id, Protocol.MIN_VERSION(apiKey.id), Protocol.CURR_VERSION(apiKey.id)))
+      apiVersions.add(new ApiVersionResponse.ApiVersion(apiKey.id, Protocol.MIN_VERSIONS(apiKey.id), Protocol.CURR_VERSION(apiKey.id)))
     })
     apiVersions
   }

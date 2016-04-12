@@ -187,6 +187,7 @@ public class Sender implements Runnable {
                 iter.remove();
                 notReadyTimeout = Math.min(notReadyTimeout, this.client.connectionDelay(node, now));
             }
+            // check if node supports the api versions we are going to use
         }
 
         // create produce requests

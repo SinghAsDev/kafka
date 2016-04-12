@@ -17,6 +17,7 @@ import java.util.List;
 
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.protocol.ApiKeys;
+import org.apache.kafka.common.requests.ApiVersionResponse;
 import org.apache.kafka.common.requests.RequestHeader;
 
 /**
@@ -132,5 +133,13 @@ public interface KafkaClient extends Closeable {
      * Wake up the client if it is currently blocked waiting for I/O
      */
     public void wakeup();
+
+    /**
+     * Get supported api versions for node
+     *
+     * @param node the node to get api versions of
+     * @return List of supported api versions
+     */
+    public List<ApiVersionResponse.ApiVersion> apiVersions(Node node);
 
 }

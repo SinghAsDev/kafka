@@ -83,8 +83,16 @@ public class ApiVersionResponse extends AbstractRequestResponse {
         }
     }
 
-    public List<ApiVersion> protocolVersions() {
+    public List<ApiVersion> apiVersions() {
         return apiVersions;
+    }
+
+    public ApiVersion apiVersions(short apiKey) {
+        for (ApiVersion apiVersion: apiVersions)
+            if (apiKey == apiVersion.apiKey)
+                return apiVersion;
+
+        return null;
     }
 
     public short errorCode() {

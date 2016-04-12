@@ -743,9 +743,6 @@ public class Protocol {
     /* the latest version of each api */
     public static final short[] CURR_VERSION = new short[ApiKeys.MAX_API_KEY + 1];
 
-    /* the minimum supported version of each api */
-    public static final short[] MIN_VERSION = new short[ApiKeys.MAX_API_KEY + 1];
-
     static {
         REQUESTS[ApiKeys.PRODUCE.id] = PRODUCE_REQUEST;
         REQUESTS[ApiKeys.FETCH.id] = FETCH_REQUEST;
@@ -790,7 +787,7 @@ public class Protocol {
             CURR_VERSION[api.id] = (short) (REQUESTS[api.id].length - 1);
             for (int i = 0; i < REQUESTS[api.id].length; ++i)
                 if (REQUESTS[api.id][i] != null) {
-                    MIN_VERSION[api.id] = (short) i;
+                    MIN_VERSIONS[api.id] = (short) i;
                     break;
                 }
         }
