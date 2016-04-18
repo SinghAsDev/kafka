@@ -24,8 +24,8 @@ import kafka.common.KafkaException
 import kafka.server._
 import kafka.utils.{CoreUtils, TestUtils}
 import kafka.zk.ZooKeeperTestHarness
+import org.apache.kafka.authorizer.KafkaPrincipal
 import org.apache.kafka.common.protocol.SecurityProtocol
-import org.apache.kafka.common.security.auth.KafkaPrincipal
 import org.junit.{After, Before}
 
 import scala.collection.mutable.Buffer

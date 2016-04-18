@@ -27,7 +27,7 @@ import java.security.cert.X509Certificate
 import javax.net.ssl.X509TrustManager
 import charset.Charset
 
-import kafka.security.auth.{Acl, Authorizer, Resource}
+import org.apache.kafka.authorizer.{Authorizer, Acl, Resource}
 import org.apache.kafka.common.protocol.SecurityProtocol
 import org.apache.kafka.common.utils.Utils._
 import org.apache.kafka.test.TestSslUtils
@@ -1080,8 +1080,8 @@ object TestUtils extends Logging {
   }
 
   def waitAndVerifyAcls(expected: Set[Acl], authorizer: Authorizer, resource: Resource) = {
-    TestUtils.waitUntilTrue(() => authorizer.getAcls(resource) == expected,
-      s"expected acls $expected but got ${authorizer.getAcls(resource)}", waitTime = 10000)
+    TestUtils.waitUntilTrue(() => authorizer.getAcls(resource).toSet == expected,
+      s"expected acls $expected but got ${authorizer.getAcls(resource).toSet}", waitTime = 10000)
   }
 
   /**

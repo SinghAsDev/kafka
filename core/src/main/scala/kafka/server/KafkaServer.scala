@@ -29,7 +29,7 @@ import java.util.concurrent._
 import atomic.{AtomicInteger, AtomicBoolean}
 import java.io.{IOException, File}
 
-import kafka.security.auth.Authorizer
+import org.apache.kafka.authorizer.Authorizer
 import kafka.utils._
 import org.apache.kafka.clients.{ManualMetadataUpdater, ClientRequest, NetworkClient}
 import org.apache.kafka.common.Node

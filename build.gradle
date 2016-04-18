@@ -343,7 +343,7 @@ for ( sv in ['2_10', '2_11'] ) {
 }
 
 def connectPkgs = ['connect:api', 'connect:runtime', 'connect:json', 'connect:file']
-def pkgs = ['clients', 'examples', 'log4j-appender', 'tools', 'streams', 'streams:examples'] + connectPkgs
+def pkgs = ['clients', 'examples', 'log4j-appender', 'tools', 'streams', 'streams:examples', 'authorizer'] + connectPkgs
 
 tasks.create(name: "jarConnect", dependsOn: connectPkgs.collect { it + ":jar" }) {}
 tasks.create(name: "jarAll", dependsOn: ['jar_core_2_10', 'jar_core_2_11'] + pkgs.collect { it + ":jar" }) { }
@@ -370,6 +370,7 @@ project(':core') {
 
   dependencies {
     compile project(':clients')
+    compile project(':authorizer')
     compile libs.joptSimple
     compile libs.metrics
     compile libs.scala
@@ -559,6 +560,7 @@ project(':clients') {
   archivesBaseName = "kafka-clients"
 
   dependencies {
+    compile project(':authorizer')
     compile libs.lz4
     compile libs.snappy
     compile libs.slf4jApi
@@ -726,6 +728,20 @@ project(':streams:examples') {
 
   jar {
     dependsOn 'copyDependantLibs'
+  }
+}
+
+project(':authorizer') {
+  archivesBaseName = "kafka-authorizer"
+
+  dependencies {
+    compile libs.slf4jlog4j
+
+    testCompile libs.junit
+  }
+
+  javadoc {
+    include "**/org/apache/kafka/authorizer/*"
   }
 }
 

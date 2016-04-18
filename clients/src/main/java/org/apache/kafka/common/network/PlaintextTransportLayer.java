@@ -29,7 +29,7 @@ import java.nio.channels.SelectionKey;
 
 import java.security.Principal;
 
-import org.apache.kafka.common.security.auth.KafkaPrincipal;
+import org.apache.kafka.authorizer.KafkaPrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

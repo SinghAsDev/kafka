@@ -18,7 +18,7 @@
 package kafka.server
 
 import kafka.common.{NotificationHandler, ZkNodeChangeNotificationListener}
-import kafka.security.auth.Resource
+import org.apache.kafka.authorizer.Resource
 import kafka.utils.Json
 import kafka.utils.Logging
 import kafka.utils.SystemTime
