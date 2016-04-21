@@ -286,11 +286,8 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
             List<InetSocketAddress> addresses = ClientUtils.parseAndValidateAddresses(config.getList(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
             this.metadata.update(Cluster.bootstrap(addresses), time.milliseconds());
             ChannelBuilder channelBuilder = ClientUtils.createChannelBuilder(config.values());
-            List<ApiVersionResponse.ApiVersion> expectedApiVersions = new ArrayList<>();
-            for (Short apiKey: this.USED_API_KEYS)
-                expectedApiVersions.add(new ApiVersionResponse.ApiVersion(apiKey, Protocol.MIN_VERSIONS[apiKey], Protocol.CURR_VERSION[apiKey]));
             NetworkClient client = new NetworkClient(
-                    expectedApiVersions,
+                    expectedApiVersions(),
                     new Selector(config.getLong(ProducerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG), this.metrics, time, "producer", channelBuilder),
                     this.metadata,
                     clientId,
@@ -349,6 +346,15 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
             // now propagate the exception
             throw new KafkaException("Failed to construct kafka producer", t);
         }
+    }
+
+    private List<ApiVersionResponse.ApiVersion> expectedApiVersions() {
+        List<ApiVersionResponse.ApiVersion> expectedApiVersions = new ArrayList<>();
+        for (Short apiKey: this.USED_API_KEYS)
+            expectedApiVersions.add(
+                    new ApiVersionResponse.ApiVersion(
+                            apiKey, Protocol.MIN_VERSIONS[apiKey], Protocol.CURR_VERSION[apiKey]));
+        return expectedApiVersions;
     }
 
     private static int parseAcks(String acksString) {

@@ -469,12 +469,10 @@ public class KafkaConsumer<K, V> implements Consumer<K, V> {
     private static final List<Short> USED_API_KEYS = Arrays.asList(
             ApiKeys.METADATA.id,
             ApiKeys.FETCH.id,
-            ApiKeys.DESCRIBE_GROUPS.id,
             ApiKeys.GROUP_COORDINATOR.id,
             ApiKeys.HEARTBEAT.id,
             ApiKeys.JOIN_GROUP.id,
             ApiKeys.LEAVE_GROUP.id,
-            ApiKeys.LIST_GROUPS.id,
             ApiKeys.LIST_OFFSETS.id,
             ApiKeys.OFFSET_COMMIT.id,
             ApiKeys.OFFSET_FETCH.id,
@@ -596,11 +594,8 @@ public class KafkaConsumer<K, V> implements Consumer<K, V> {
             this.metadata.update(Cluster.bootstrap(addresses), 0);
             String metricGrpPrefix = "consumer";
             ChannelBuilder channelBuilder = ClientUtils.createChannelBuilder(config.values());
-            List<ApiVersionResponse.ApiVersion> expectedApiVersions = new ArrayList<>();
-            for (Short apiKey: this.USED_API_KEYS)
-                expectedApiVersions.add(new ApiVersionResponse.ApiVersion(apiKey, Protocol.MIN_VERSIONS[apiKey], Protocol.CURR_VERSION[apiKey]));
             NetworkClient netClient = new NetworkClient(
-                    expectedApiVersions,
+                    expectedApiVersions(),
                     new Selector(config.getLong(ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG), metrics, time, metricGrpPrefix, channelBuilder),
                     this.metadata,
                     clientId,
@@ -679,6 +674,15 @@ public class KafkaConsumer<K, V> implements Consumer<K, V> {
             // now propagate the exception
             throw new KafkaException("Failed to construct kafka consumer", t);
         }
+    }
+
+    private List<ApiVersionResponse.ApiVersion> expectedApiVersions() {
+        List<ApiVersionResponse.ApiVersion> expectedApiVersions = new ArrayList<>();
+        for (Short apiKey: this.USED_API_KEYS)
+            expectedApiVersions.add(
+                    new ApiVersionResponse.ApiVersion(
+                            apiKey, Protocol.MIN_VERSIONS[apiKey], Protocol.CURR_VERSION[apiKey]));
+        return expectedApiVersions;
     }
 
     /**

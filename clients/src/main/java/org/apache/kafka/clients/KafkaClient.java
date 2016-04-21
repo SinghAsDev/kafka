@@ -134,12 +134,4 @@ public interface KafkaClient extends Closeable {
      */
     public void wakeup();
 
-    /**
-     * Get supported api versions for node
-     *
-     * @param node the node to get api versions of
-     * @return List of supported api versions
-     */
-    public List<ApiVersionResponse.ApiVersion> apiVersions(Node node);
-
 }

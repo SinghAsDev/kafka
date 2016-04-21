@@ -362,17 +362,6 @@ public class NetworkClient implements KafkaClient {
     }
 
     /**
-     * Get supported api versions
-     *
-     * @param node the node to get api versions of
-     * @return List of supported api versions
-     */
-    @Override
-    public List<ApiVersionResponse.ApiVersion> apiVersions(Node node) {
-        return nodeApiVersions.get(node.id());
-    }
-
-    /**
      * Close the network client
      */
     @Override
