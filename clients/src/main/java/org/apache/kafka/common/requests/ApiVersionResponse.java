@@ -27,9 +27,9 @@ public class ApiVersionResponse extends AbstractRequestResponse {
 
     private static final Schema CURRENT_SCHEMA = ProtoUtils.currentResponseSchema(ApiKeys.API_VERSION.id);
 
+    public static final String ERROR_CODE_KEY_NAME = "error_code";
     public static final String API_VERSIONS_KEY_NAME = "api_versions";
     public static final String API_KEY_NAME = "api_key";
-    public static final String ERROR_CODE_KEY_NAME = "error_code";
     public static final String MIN_VERSION_KEY_NAME = "min_version";
     public static final String MAX_VERSION_KEY_NAME = "max_version";
 
@@ -39,26 +39,19 @@ public class ApiVersionResponse extends AbstractRequestResponse {
      * CLUSTER_AUTHORIZATION_FAILED (31)
      */
     private final short errorCode;
+    private final List<ApiVersion> apiVersions;
 
     public static final class ApiVersion {
         public final short apiKey;
-        public final short errorCode;
         public final short minVersion;
         public final short maxVersion;
 
-        public ApiVersion(short apiKey, short errorCode, short minVersion, short maxVersion) {
+        public ApiVersion(short apiKey, short minVersion, short maxVersion) {
             this.apiKey = apiKey;
-            this.errorCode = errorCode;
             this.minVersion = minVersion;
             this.maxVersion = maxVersion;
         }
-
-        public ApiVersion(short apiKey, short minVersion, short maxVersion) {
-            this(apiKey, (short) 0, minVersion, maxVersion);
-        }
     }
-
-    private final List<ApiVersion> apiVersions;
 
     public ApiVersionResponse(short errorCode, List<ApiVersion> apiVersions) {
         super(new Struct(CURRENT_SCHEMA));
@@ -67,7 +60,6 @@ public class ApiVersionResponse extends AbstractRequestResponse {
         for (ApiVersion apiVersion : apiVersions) {
             Struct apiVersionStruct = struct.instance(API_VERSIONS_KEY_NAME);
             apiVersionStruct.set(API_KEY_NAME, apiVersion.apiKey);
-            apiVersionStruct.set(ERROR_CODE_KEY_NAME, apiVersion.errorCode);
             apiVersionStruct.set(MIN_VERSION_KEY_NAME, apiVersion.minVersion);
             apiVersionStruct.set(MAX_VERSION_KEY_NAME, apiVersion.maxVersion);
             apiVersionList.add(apiVersionStruct);
@@ -84,10 +76,9 @@ public class ApiVersionResponse extends AbstractRequestResponse {
         for (Object apiVersionsObj : struct.getArray(API_VERSIONS_KEY_NAME)) {
             Struct apiVersionStruct = (Struct) apiVersionsObj;
             short apiKey = apiVersionStruct.getShort(API_KEY_NAME);
-            short errorCode = apiVersionStruct.getShort(ERROR_CODE_KEY_NAME);
             short minVersion = apiVersionStruct.getShort(MIN_VERSION_KEY_NAME);
             short maxVersion = apiVersionStruct.getShort(MAX_VERSION_KEY_NAME);
-            this.apiVersions.add(new ApiVersion(apiKey, errorCode, minVersion, maxVersion));
+            this.apiVersions.add(new ApiVersion(apiKey, minVersion, maxVersion));
         }
     }
 

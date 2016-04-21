@@ -719,12 +719,10 @@ public class Protocol {
     public static final Schema[] UPDATE_METADATA_RESPONSE = new Schema[] {UPDATE_METADATA_RESPONSE_V0, UPDATE_METADATA_RESPONSE_V1, UPDATE_METADATA_RESPONSE_V2};
 
     /* ApiVersion api */
-    public static final Schema API_VERSION_REQUEST_V0 = new Schema(
-            new Field("api_keys", new ArrayOf(INT16, true), "Apis for which their supported versions have to be returned. Null array would return versions for all Apis."));
+    public static final Schema API_VERSION_REQUEST_V0 = new Schema();
 
     public static final Schema API_VERSION_V0 = new Schema(
             new Field("api_key", INT16, "Api key."),
-            new Field("error_code", INT16, "Error code for the api key."),
             new Field("min_version", INT16, "Minimum supported version."),
             new Field("max_version", INT16, "Maximum supported version."));
 

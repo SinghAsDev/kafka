@@ -232,7 +232,7 @@ class AuthorizerIntegrationTest extends KafkaServerTestHarness {
   }
 
   private def createApiVersionRequest = {
-    new requests.ApiVersionRequest(null.asInstanceOf[java.util.List[java.lang.Short]])
+    new requests.ApiVersionRequest()
   }
 
   @Test

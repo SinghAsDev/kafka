@@ -430,7 +430,7 @@ public class RequestResponseTest {
 
 
     private AbstractRequest createApiVersionRequest() {
-        return new ApiVersionRequest(Arrays.asList((short) 0));
+        return new ApiVersionRequest();
     }
 
     private AbstractRequestResponse createApiVersionResponse() {

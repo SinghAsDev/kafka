@@ -37,12 +37,11 @@ import kafka.utils.{Logging, SystemTime, ZKGroupTopicDirs, ZkUtils}
 import org.apache.kafka.common.errors.{ClusterAuthorizationException, InvalidTopicException, NotLeaderForPartitionException, UnknownTopicOrPartitionException}
 import org.apache.kafka.common.metrics.Metrics
 import org.apache.kafka.common.protocol.{ApiKeys, Errors, Protocol, SecurityProtocol}
-import org.apache.kafka.common.requests.{ApiVersionRequest, ApiVersionResponse, DescribeGroupsRequest, DescribeGroupsResponse, GroupCoordinatorRequest, GroupCoordinatorResponse, HeartbeatRequest, HeartbeatResponse, JoinGroupRequest, JoinGroupResponse, LeaderAndIsrRequest, LeaderAndIsrResponse, LeaveGroupRequest, LeaveGroupResponse, ListGroupsResponse, ListOffsetRequest, ListOffsetResponse, MetadataRequest, MetadataResponse, OffsetCommitRequest, OffsetCommitResponse, OffsetFetchRequest, OffsetFetchResponse, ProduceRequest, ProduceResponse, ResponseHeader, ResponseSend, StopReplicaRequest, StopReplicaResponse, SyncGroupRequest, SyncGroupResponse, UpdateMetadataRequest, UpdateMetadataResponse}
+import org.apache.kafka.common.requests.{ApiVersionResponse, DescribeGroupsRequest, DescribeGroupsResponse, GroupCoordinatorRequest, GroupCoordinatorResponse, HeartbeatRequest, HeartbeatResponse, JoinGroupRequest, JoinGroupResponse, LeaderAndIsrRequest, LeaderAndIsrResponse, LeaveGroupRequest, LeaveGroupResponse, ListGroupsResponse, ListOffsetRequest, ListOffsetResponse, MetadataRequest, MetadataResponse, OffsetCommitRequest, OffsetCommitResponse, OffsetFetchRequest, OffsetFetchResponse, ProduceRequest, ProduceResponse, ResponseHeader, ResponseSend, StopReplicaRequest, StopReplicaResponse, SyncGroupRequest, SyncGroupResponse, UpdateMetadataRequest, UpdateMetadataResponse}
 import org.apache.kafka.common.requests.ProduceResponse.PartitionResponse
 import org.apache.kafka.common.utils.Utils
 import org.apache.kafka.common.{Node, TopicPartition}
 import org.apache.kafka.common.internals.TopicConstants
-import org.apache.kafka.common.requests.ApiVersionResponse.ApiVersion
 
 import scala.collection._
 import scala.collection.JavaConverters._
@@ -1003,23 +1002,12 @@ class KafkaApis(val requestChannel: RequestChannel,
   }
 
   def handleApiVersionRequest(request: RequestChannel.Request) {
-    val apiVersionRequest = request.body.asInstanceOf[ApiVersionRequest]
-    val requestedApiKeys = apiVersionRequest.getApiKeys
     val responseHeader = new ResponseHeader(request.header.correlationId)
     val responseBody = if (!authorize(request.session, Describe, Resource.ClusterResource))
       ApiVersionResponse.fromError(Errors.CLUSTER_AUTHORIZATION_FAILED)
     else
-      new ApiVersionResponse(Errors.NONE.code, supportedApiVersions(requestedApiKeys))
+      new ApiVersionResponse(Errors.NONE.code, KafkaApis.apiKeysToApiVersions.values.toList.asJava)
     requestChannel.sendResponse(new RequestChannel.Response(request, new ResponseSend(request.connectionId, responseHeader, responseBody)))
-  }
-
-  def supportedApiVersions(requestedApiKeys: util.List[JShort]): util.List[ApiVersion] = {
-    if (requestedApiKeys == null)
-      KafkaApis.apiKeysToApiVersions.values.toList.asJava
-    else
-      requestedApiKeys.asScala.map(x =>
-        KafkaApis.apiKeysToApiVersions.getOrElse(x, new ApiVersion(x, Errors.API_NOT_SUPPORTED.code(), 0, 0))
-      ).toList.asJava
   }
 
   def close() {

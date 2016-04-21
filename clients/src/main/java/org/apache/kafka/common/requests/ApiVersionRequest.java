@@ -19,33 +19,18 @@ import org.apache.kafka.common.protocol.types.Schema;
 import org.apache.kafka.common.protocol.types.Struct;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 public class ApiVersionRequest extends AbstractRequest {
 
     private static final Schema CURRENT_SCHEMA = ProtoUtils.currentRequestSchema(ApiKeys.API_VERSION.id);
-    private static final String API_KEYS_KEY_NAME = "api_keys";
 
-    private final List<Short> apiKeys;
-
-    public ApiVersionRequest(List<Short> apiKeys) {
+    public ApiVersionRequest() {
         super(new Struct(CURRENT_SCHEMA));
-        struct.set(API_KEYS_KEY_NAME, apiKeys == null ? null : apiKeys.toArray());
-        this.apiKeys = apiKeys;
     }
 
     public ApiVersionRequest(Struct struct) {
         super(struct);
-        Object[] apiKeysArray = struct.getArray(API_KEYS_KEY_NAME);
-        if (apiKeysArray == null)
-            this.apiKeys = null;
-        else {
-            this.apiKeys = new ArrayList<>();
-            for (Object apiKeyObj : apiKeysArray)
-                apiKeys.add((Short) apiKeyObj);
-        }
     }
 
     @Override
@@ -58,10 +43,6 @@ public class ApiVersionRequest extends AbstractRequest {
                 throw new IllegalArgumentException(String.format("Version %d is not valid. Valid versions for %s are 0 to %d",
                         versionId, this.getClass().getSimpleName(), ProtoUtils.latestVersion(ApiKeys.API_VERSION.id)));
         }
-    }
-
-    public List<Short> getApiKeys() {
-        return apiKeys;
     }
 
     public static ApiVersionRequest parse(ByteBuffer buffer, int versionId) {
