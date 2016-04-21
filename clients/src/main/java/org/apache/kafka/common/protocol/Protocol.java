@@ -724,6 +724,7 @@ public class Protocol {
 
     public static final Schema API_VERSION_V0 = new Schema(
             new Field("api_key", INT16, "Api key."),
+            new Field("error_code", INT16, "Error code for the api key."),
             new Field("min_version", INT16, "Minimum supported version."),
             new Field("max_version", INT16, "Maximum supported version."));
 

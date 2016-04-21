@@ -15,6 +15,7 @@ package org.apache.kafka.clients;
 import org.apache.kafka.common.Cluster;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.Node;
+import org.apache.kafka.common.errors.ApiNotSupportedException;
 import org.apache.kafka.common.network.NetworkReceive;
 import org.apache.kafka.common.network.Selectable;
 import org.apache.kafka.common.network.Send;
@@ -485,6 +486,12 @@ public class NetworkClient implements KafkaClient {
         final String node = req.request().destination();
         for (ApiVersionResponse.ApiVersion requiredApiVersion : requiredApiVersions) {
             final ApiVersionResponse.ApiVersion supportedApiVersion = apiVersionResponse.apiVersions(requiredApiVersion.apiKey);
+            if (supportedApiVersion.errorCode == Errors.API_NOT_SUPPORTED.code()) {
+                throw new ApiNotSupportedException("Api " + supportedApiVersion.apiKey + " not supported by node " + req.request().destination());
+            } else if (supportedApiVersion.errorCode != 0) {
+                throw new KafkaException("Api " + supportedApiVersion.apiKey + " received unknown error from node " + req.request().destination() +
+                        " on trying to fetch supported versions of the API");
+            }
             if ((requiredApiVersion.minVersion > supportedApiVersion.maxVersion && requiredApiVersion.maxVersion > supportedApiVersion.maxVersion) ||
                     (requiredApiVersion.minVersion < supportedApiVersion.minVersion && requiredApiVersion.maxVersion > supportedApiVersion.minVersion)) {
                 close(node);

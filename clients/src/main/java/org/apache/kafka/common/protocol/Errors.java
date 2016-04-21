@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kafka.common.errors.ApiException;
+import org.apache.kafka.common.errors.ApiNotSupportedException;
 import org.apache.kafka.common.errors.BrokerNotAvailableException;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.ControllerMovedException;
@@ -130,7 +131,9 @@ public enum Errors {
     CLUSTER_AUTHORIZATION_FAILED(31,
             new ClusterAuthorizationException("Cluster authorization failed.")),
     INVALID_TIMESTAMP(32,
-            new InvalidTimestampException("The timestamp of the message is out of acceptable range."));
+            new InvalidTimestampException("The timestamp of the message is out of acceptable range.")),
+    API_NOT_SUPPORTED(33,
+            new ApiNotSupportedException("The api is not supported."));
 
     private static final Logger log = LoggerFactory.getLogger(Errors.class);
 

@@ -17,7 +17,6 @@ import java.util.List;
 
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.protocol.ApiKeys;
-import org.apache.kafka.common.requests.ApiVersionResponse;
 import org.apache.kafka.common.requests.RequestHeader;
 
 /**

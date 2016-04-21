@@ -25,20 +25,21 @@ import org.junit.Test
 class ApiVersionTest {
 
   @Test
-  def testBrokerAdvertiseToZK {
-    val apiVersions = KafkaApis.apiVersions
-    assert(apiVersions.size() == ApiKeys.values().size)
+  def testApiVersions {
+    val apiVersions = KafkaApis.apiKeysToApiVersions.values
+    assert(KafkaApis.apiKeysToApiVersions.values.size == ApiKeys.values().length)
 
-    for ((version, apiKey) <- apiVersions.toArray zip ApiKeys.values) {
-      val ver: ApiVersion = version.asInstanceOf[ApiVersion]
-      assert(ver.apiKey == apiKey.id)
-      for (i <- 0 until ver.minVersion) {
-        assert(Protocol.REQUESTS(ver.apiKey)(i) == null)
-        assert(Protocol.RESPONSES(ver.apiKey)(i) == null)
+    for (key <- ApiKeys.values()) {
+      val version: ApiVersion = KafkaApis.apiKeysToApiVersions.getOrElse(key.id, null)
+      assert(version != null, "Could not find ApiVersion for API " + key.name)
+
+      for (i <- 0 until version.minVersion) {
+        assert(Protocol.REQUESTS(version.apiKey)(i) == null)
+        assert(Protocol.RESPONSES(version.apiKey)(i) == null)
       }
-      for (i <- ver.minVersion.asInstanceOf[Int] to ver.maxVersion) {
-        assert(Protocol.REQUESTS(ver.apiKey)(i) != null)
-        assert(Protocol.RESPONSES(ver.apiKey)(i) != null)
+      for (i <- version.minVersion.asInstanceOf[Int] to version.maxVersion) {
+        assert(Protocol.REQUESTS(version.apiKey)(i) != null)
+        assert(Protocol.RESPONSES(version.apiKey)(i) != null)
       }
     }
   }

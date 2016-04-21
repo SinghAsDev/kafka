@@ -26,9 +26,7 @@ import java.util.Set;
 
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.protocol.ApiKeys;
-import org.apache.kafka.common.protocol.Protocol;
 import org.apache.kafka.common.protocol.types.Struct;
-import org.apache.kafka.common.requests.ApiVersionResponse;
 import org.apache.kafka.common.requests.RequestHeader;
 import org.apache.kafka.common.utils.Time;
 
