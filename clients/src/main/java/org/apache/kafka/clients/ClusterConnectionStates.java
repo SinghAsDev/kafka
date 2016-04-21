@@ -114,19 +114,19 @@ final class ClusterConnectionStates {
         nodeState.lastConnectAttemptMs = now;
     }
 
-    public void apiVersionsFetching(String id) {
+    public void checkingApiVersions(String id) {
         NodeConnectionState nodeState = nodeState(id);
-        nodeState.state = ConnectionState.FETCHING_API_VERSIONS;
+        nodeState.state = ConnectionState.CHECKING_API_VERSIONS;
     }
 
-    public void apiVersionsFetched(String id) {
+    public void ready(String id) {
         NodeConnectionState nodeState = nodeState(id);
-        nodeState.state = ConnectionState.FETCHED_API_VERSIONS;
+        nodeState.state = ConnectionState.READY;
     }
 
-    public boolean isApiVersionsFetched(String id) {
+    public boolean isReady(String id) {
         NodeConnectionState state = nodeState.get(id);
-        return state != null && state.state == ConnectionState.FETCHED_API_VERSIONS;
+        return state != null && state.state == ConnectionState.READY;
     }
 
     /**

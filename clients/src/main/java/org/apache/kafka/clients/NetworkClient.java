@@ -248,9 +248,9 @@ public class NetworkClient implements KafkaClient {
      * @param node The node
      */
     private boolean canSendRequest(String node) {
-        log.debug("Checking can send to {}. reqApiVers: {}, isConnected: {}, isApiVersionsFetched: {}, isChannelReady: {}, canSendMore: {}",
-                node, this.requiredApiVersions, connectionStates.isConnected(node), connectionStates.isApiVersionsFetched(node), selector.isChannelReady(node), inFlightRequests.canSendMore(node));
-        return this.requiredApiVersions == null ? connectionStates.isConnected(node) : connectionStates.isApiVersionsFetched(node) && selector.isChannelReady(node) && inFlightRequests.canSendMore(node);
+        log.trace("Checking can send request to {}. reqApiVers: {}, isConnected: {}, isReady: {}, isChannelReady: {}, canSendMore: {}",
+                node, this.requiredApiVersions, connectionStates.isConnected(node), connectionStates.isReady(node), selector.isChannelReady(node), inFlightRequests.canSendMore(node));
+        return this.requiredApiVersions == null ? connectionStates.isConnected(node) : connectionStates.isReady(node) && selector.isChannelReady(node) && inFlightRequests.canSendMore(node);
     }
 
     /**
@@ -494,7 +494,7 @@ public class NetworkClient implements KafkaClient {
             }
         }
         nodeApiVersions.put(Integer.parseInt(node), apiVersionResponse.apiVersions());
-        this.connectionStates.apiVersionsFetched(node);
+        this.connectionStates.ready(node);
         log.debug("Added to nodeApiVersions {}: {}", node, apiVersionResponse.apiVersions());
     }
 
@@ -531,7 +531,7 @@ public class NetworkClient implements KafkaClient {
 
         String nodeConnectionId = nodeId;
         log.debug("Initiating api versions fetch from node {}.", nodeId);
-        this.connectionStates.apiVersionsFetching(nodeConnectionId);
+        this.connectionStates.checkingApiVersions(nodeConnectionId);
         ApiVersionRequest apiVersionRequest = new ApiVersionRequest();
 
         RequestSend send = new RequestSend(nodeId, nextRequestHeader(ApiKeys.API_VERSION), apiVersionRequest.toStruct());
