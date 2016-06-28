@@ -20,6 +20,7 @@ import org.apache.kafka.common.errors.GroupAuthorizationException;
 import org.apache.kafka.common.errors.GroupCoordinatorNotAvailableException;
 import org.apache.kafka.common.errors.IllegalGenerationException;
 import org.apache.kafka.common.errors.RebalanceInProgressException;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.errors.UnknownMemberIdException;
 import org.apache.kafka.common.metrics.Measurable;
 import org.apache.kafka.common.metrics.MetricConfig;
@@ -182,6 +183,34 @@ public abstract class AbstractCoordinator implements Closeable {
                 if (future.isRetriable())
                     client.awaitMetadataUpdate();
                 else
+                    throw future.exception();
+            } else if (coordinator != null && client.connectionFailed(coordinator)) {
+                // we found the coordinator, but the connection has failed, so mark
+                // it dead and backoff before retrying discovery
+                coordinatorDead();
+                time.sleep(retryBackoffMs);
+            }
+
+        }
+    }
+
+    /**
+     * Block for specified amount of time for the coordinator for this group to become known and ready to receive requests.
+     * @param timeout Max time to wait for coordinator to be ready
+     */
+    public void ensureCoordinatorReady(long timeout) {
+        long startTime = time.nanoseconds();
+        while (coordinatorUnknown()) {
+            RequestFuture<Void> future = sendGroupCoordinatorRequest();
+            client.poll(future);
+
+            if (future.failed()) {
+                if (future.isRetriable()) {
+                    if (time.nanoseconds() - startTime > timeout)
+                        throw new TimeoutException("Timed out waiting for coordinator to be ready.", future.exception());
+                    else
+                        client.awaitMetadataUpdate();
+                } else
                     throw future.exception();
             } else if (coordinator != null && client.connectionFailed(coordinator)) {
                 // we found the coordinator, but the connection has failed, so mark

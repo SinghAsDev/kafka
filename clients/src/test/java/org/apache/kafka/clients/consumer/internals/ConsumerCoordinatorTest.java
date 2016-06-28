@@ -85,6 +85,7 @@ public class ConsumerCoordinatorTest {
     private long retryBackoffMs = 100;
     private boolean autoCommitEnabled = false;
     private long autoCommitIntervalMs = 2000;
+    private long maxBlockMs = 10 * 1000;
     private MockPartitionAssignor partitionAssignor = new MockPartitionAssignor();
     private List<PartitionAssignor> assignors = Collections.<PartitionAssignor>singletonList(partitionAssignor);
     private MockTime time;
@@ -1164,7 +1165,8 @@ public class ConsumerCoordinatorTest {
                 autoCommitEnabled,
                 autoCommitIntervalMs,
                 null,
-                excludeInternalTopics);
+                excludeInternalTopics,
+                maxBlockMs);
     }
 
     private Struct consumerMetadataResponse(Node node, short error) {

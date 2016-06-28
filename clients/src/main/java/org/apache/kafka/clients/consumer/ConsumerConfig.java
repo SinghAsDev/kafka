@@ -187,6 +187,11 @@ public class ConsumerConfig extends AbstractConfig {
     private static final String EXCLUDE_INTERNAL_TOPICS_DOC = "Whether records from internal topics (such as offsets) should be exposed to the consumer. "
                                                             + "If set to <code>true</code> the only way to receive records from an internal topic is subscribing to it.";
     public static final boolean DEFAULT_EXCLUDE_INTERNAL_TOPICS = true;
+
+    /** <code>max.block.ms</code> */
+    public static final String MAX_BLOCK_MS_CONFIG = "max.block.ms";
+    private static final String MAX_BLOCK_MS_DOC = "The configuration controls how long <code>KafkaConsumer</code> will block for discovering <code>ConsumerCoordinator</code>.";
+    public static final long DEFAULT_MAX_BLOCK_MS = 60 * 1000;
     
     static {
         CONFIG = new ConfigDef().define(BOOTSTRAP_SERVERS_CONFIG,
@@ -337,6 +342,12 @@ public class ConsumerConfig extends AbstractConfig {
                                         DEFAULT_EXCLUDE_INTERNAL_TOPICS,
                                         Importance.MEDIUM,
                                         EXCLUDE_INTERNAL_TOPICS_DOC)
+                                .define(MAX_BLOCK_MS_CONFIG,
+                                        Type.LONG,
+                                        DEFAULT_MAX_BLOCK_MS,
+                                        atLeast(0),
+                                        Importance.MEDIUM,
+                                        MAX_BLOCK_MS_DOC)
 
                                 // security support
                                 .define(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,

@@ -72,6 +72,7 @@ public final class ConsumerCoordinator extends AbstractCoordinator {
     private final AutoCommitTask autoCommitTask;
     private final ConsumerInterceptors<?, ?> interceptors;
     private final boolean excludeInternalTopics;
+    private final long maxBlockMs;
 
     private MetadataSnapshot metadataSnapshot;
     private MetadataSnapshot assignmentSnapshot;
@@ -94,7 +95,8 @@ public final class ConsumerCoordinator extends AbstractCoordinator {
                                boolean autoCommitEnabled,
                                long autoCommitIntervalMs,
                                ConsumerInterceptors<?, ?> interceptors,
-                               boolean excludeInternalTopics) {
+                               boolean excludeInternalTopics,
+                               long maxBlockMs) {
         super(client,
                 groupId,
                 sessionTimeoutMs,
@@ -124,6 +126,7 @@ public final class ConsumerCoordinator extends AbstractCoordinator {
         this.sensors = new ConsumerCoordinatorMetrics(metrics, metricGrpPrefix);
         this.interceptors = interceptors;
         this.excludeInternalTopics = excludeInternalTopics;
+        this.maxBlockMs = maxBlockMs;
     }
 
     @Override
@@ -398,7 +401,7 @@ public final class ConsumerCoordinator extends AbstractCoordinator {
             return;
 
         while (true) {
-            ensureCoordinatorReady();
+            ensureCoordinatorReady(maxBlockMs);
 
             RequestFuture<Void> future = sendOffsetCommitRequest(offsets);
             client.poll(future);
