@@ -13,6 +13,7 @@
 package kafka.admin
 
 import java.nio.ByteBuffer
+import java.util
 import java.util.{Collections, Properties}
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -27,6 +28,8 @@ import org.apache.kafka.common.metrics.Metrics
 import org.apache.kafka.common.network.Selector
 import org.apache.kafka.common.protocol.{ApiKeys, Errors}
 import org.apache.kafka.common.requests._
+import org.apache.kafka.common.security.Token
+import org.apache.kafka.common.security.auth.KafkaPrincipal
 import org.apache.kafka.common.utils.{Time, Utils}
 import org.apache.kafka.common.{Cluster, Node, TopicPartition}
 
@@ -152,6 +155,16 @@ class AdminClient(val time: Time,
     }.toList
 
     ConsumerGroupSummary(metadata.state, metadata.protocol, Some(consumers), coordinator)
+  }
+
+  def createDelegationToken(renewers: Set[String], maxLifeTime: Long): Token = {
+    val responseBody = sendAnyNode(
+      ApiKeys.CREATE_DELEGATION_TOKEN,
+      new DelegationTokenRequest(renewers.map(f => KafkaPrincipal.fromString(f)).asJava, maxLifeTime))
+    val response = responseBody.asInstanceOf[DelegationTokenResponse]
+    if (response.errorCode() == Errors.DELEGATION_TOKEN_NOT_ENABLED.code())
+      throw new KafkaException(s"Delegation token support is not enabled on the broker.")
+    response.token()
   }
 
   def close() {

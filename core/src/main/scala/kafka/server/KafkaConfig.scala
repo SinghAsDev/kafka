@@ -186,6 +186,9 @@ object Defaults {
   val SaslKerberosMinTimeBeforeRelogin = SaslConfigs.DEFAULT_KERBEROS_MIN_TIME_BEFORE_RELOGIN
   val SaslKerberosPrincipalToLocalRules = SaslConfigs.DEFAULT_SASL_KERBEROS_PRINCIPAL_TO_LOCAL_RULES
 
+  /** ********* Delegation token configuration ***********/
+  val DelegationTokenSecret = ""
+  val DelegationTokenMaxLifeTimeMs = Long.MaxValue
 }
 
 object KafkaConfig {
@@ -355,6 +358,10 @@ object KafkaConfig {
   val SaslKerberosTicketRenewJitterProp = SaslConfigs.SASL_KERBEROS_TICKET_RENEW_JITTER
   val SaslKerberosMinTimeBeforeReloginProp = SaslConfigs.SASL_KERBEROS_MIN_TIME_BEFORE_RELOGIN
   val SaslKerberosPrincipalToLocalRulesProp = SaslConfigs.SASL_KERBEROS_PRINCIPAL_TO_LOCAL_RULES
+
+  /** ********* Delegation token configuration ***********/
+  val DelegationTokenSecretProp = "delegation.token.secret"
+  val DelegationTokenMaxLifeTimeMsProp = "delegation.token.max.life.time.ms"
 
   /* Documentation */
   /** ********* Zookeeper Configuration ***********/
@@ -577,6 +584,10 @@ object KafkaConfig {
   val SaslKerberosMinTimeBeforeReloginDoc = SaslConfigs.SASL_KERBEROS_MIN_TIME_BEFORE_RELOGIN_DOC
   val SaslKerberosPrincipalToLocalRulesDoc = SaslConfigs.SASL_KERBEROS_PRINCIPAL_TO_LOCAL_RULES_DOC
 
+  /** ********* Delegation token configuration ***********/
+  val DelegationTokenSecretDoc = "Secret used by brokers to generate and validate delegation tokens."
+  val DelegationTokenMaxLifeTimeMsDoc = "Max life time of any delegation token."
+
   private val configDef = {
     import ConfigDef.Importance._
     import ConfigDef.Range._
@@ -754,6 +765,9 @@ object KafkaConfig {
       .define(SaslKerberosMinTimeBeforeReloginProp, LONG, Defaults.SaslKerberosMinTimeBeforeRelogin, MEDIUM, SaslKerberosMinTimeBeforeReloginDoc)
       .define(SaslKerberosPrincipalToLocalRulesProp, LIST, Defaults.SaslKerberosPrincipalToLocalRules, MEDIUM, SaslKerberosPrincipalToLocalRulesDoc)
 
+      /** ********* Delegation token configuration ***********/
+      .define(DelegationTokenSecretProp, STRING, Defaults.DelegationTokenSecret, MEDIUM, DelegationTokenSecretDoc)
+      .define(DelegationTokenMaxLifeTimeMsProp, LONG, Defaults.DelegationTokenMaxLifeTimeMs, MEDIUM, DelegationTokenMaxLifeTimeMsDoc)
   }
 
   def configNames() = configDef.names().asScala.toList.sorted
@@ -945,6 +959,10 @@ class KafkaConfig(val props: java.util.Map[_, _], doLog: Boolean) extends Abstra
   val quotaWindowSizeSeconds = getInt(KafkaConfig.QuotaWindowSizeSecondsProp)
   val numReplicationQuotaSamples = getInt(KafkaConfig.NumReplicationQuotaSamplesProp)
   val replicationQuotaWindowSizeSeconds = getInt(KafkaConfig.ReplicationQuotaWindowSizeSecondsProp)
+
+  /** ********* Delegation Token Configuration **************/
+  val delegationTokenSecret = getString(KafkaConfig.DelegationTokenSecretProp)
+  val delegationTokenMaxLifeTimeMs = getLong(KafkaConfig.DelegationTokenMaxLifeTimeMsProp)
 
   val deleteTopicEnable = getBoolean(KafkaConfig.DeleteTopicEnableProp)
   val compressionType = getString(KafkaConfig.CompressionTypeProp)

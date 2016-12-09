@@ -924,6 +924,43 @@ public class Protocol {
     public static final Schema[] DELETE_TOPICS_REQUEST = new Schema[] {DELETE_TOPICS_REQUEST_V0};
     public static final Schema[] DELETE_TOPICS_RESPONSE = new Schema[] {DELETE_TOPICS_RESPONSE_V0};
 
+    /* DelegationTokenRequest api */
+    public static final Schema DELEGATION_TOKEN_REQUEST_V0 = new Schema(
+            new Field("renewers",
+                    new ArrayOf(STRING),
+                    "An array of kafka principals who are allowed to renew the delegation token."),
+            new Field("max_life_time",
+                    INT64,
+                    "The max life time of the delegation token."));
+
+    public static final Schema DELEGATION_TOKEN_RESPONSE_V0 = new Schema(
+            new Field("error_code",
+                    INT16),
+            new Field("owner",
+                    STRING,
+                    "Owner of the created delegation token."),
+            new Field("renewers",
+                    new ArrayOf(STRING),
+                    "An array of kafka principals who are allowed to renew the delegation token."),
+            new Field("created_time_ms",
+                    INT64,
+                    "Creation time of the delegation token."),
+            new Field("expiry_time_ms",
+                    INT64,
+                    "Expiry time of the delegation token."),
+            new Field("max_life_time_ms",
+                    INT64,
+                    "The max life time of the delegation token."),
+            new Field("token_id",
+                    STRING,
+                    "Token ID of the delegation token."),
+            new Field("hmac",
+                    BYTES,
+                    "HMAC of the delegation token."));
+
+    public static final Schema[] DELEGATION_TOKEN_REQUEST = new Schema[] {DELEGATION_TOKEN_REQUEST_V0};
+    public static final Schema[] DELEGATION_TOKEN_RESPONSE = new Schema[] {DELEGATION_TOKEN_RESPONSE_V0};
+
     /* an array of all requests and responses with all schema versions; a null value in the inner array means that the
      * particular version is not supported */
     public static final Schema[][] REQUESTS = new Schema[ApiKeys.MAX_API_KEY + 1][];
@@ -955,6 +992,7 @@ public class Protocol {
         REQUESTS[ApiKeys.API_VERSIONS.id] = API_VERSIONS_REQUEST;
         REQUESTS[ApiKeys.CREATE_TOPICS.id] = CREATE_TOPICS_REQUEST;
         REQUESTS[ApiKeys.DELETE_TOPICS.id] = DELETE_TOPICS_REQUEST;
+        REQUESTS[ApiKeys.CREATE_DELEGATION_TOKEN.id] = DELEGATION_TOKEN_REQUEST;
 
         RESPONSES[ApiKeys.PRODUCE.id] = PRODUCE_RESPONSE;
         RESPONSES[ApiKeys.FETCH.id] = FETCH_RESPONSE;
@@ -977,6 +1015,7 @@ public class Protocol {
         RESPONSES[ApiKeys.API_VERSIONS.id] = API_VERSIONS_RESPONSE;
         RESPONSES[ApiKeys.CREATE_TOPICS.id] = CREATE_TOPICS_RESPONSE;
         RESPONSES[ApiKeys.DELETE_TOPICS.id] = DELETE_TOPICS_RESPONSE;
+        RESPONSES[ApiKeys.CREATE_DELEGATION_TOKEN.id] = DELEGATION_TOKEN_RESPONSE;
 
         /* set the minimum and maximum version of each api */
         for (ApiKeys api : ApiKeys.values()) {

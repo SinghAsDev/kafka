@@ -24,6 +24,7 @@ import org.apache.kafka.common.errors.BrokerNotAvailableException;
 import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.ControllerMovedException;
 import org.apache.kafka.common.errors.CorruptRecordException;
+import org.apache.kafka.common.errors.DelegationTokenException;
 import org.apache.kafka.common.errors.GroupAuthorizationException;
 import org.apache.kafka.common.errors.GroupCoordinatorNotAvailableException;
 import org.apache.kafka.common.errors.GroupLoadInProgressException;
@@ -164,7 +165,9 @@ public enum Errors {
         new InvalidRequestException("This most likely occurs because of a request being malformed by the client library or" +
             " the message was sent to an incompatible broker. See the broker logs for more details.")),
     UNSUPPORTED_FOR_MESSAGE_FORMAT(43,
-        new UnsupportedForMessageFormatException("The message format version on the broker does not support the request."));
+        new UnsupportedForMessageFormatException("The message format version on the broker does not support the request.")),
+    DELEGATION_TOKEN_NOT_ENABLED(44,
+        new DelegationTokenException("Delegation token support is not enabled on the broker."));
 
     private static final Logger log = LoggerFactory.getLogger(Errors.class);
 

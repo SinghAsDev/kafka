@@ -77,6 +77,8 @@ public abstract class AbstractResponse extends AbstractRequestResponse {
                 return new CreateTopicsResponse(struct);
             case DELETE_TOPICS:
                 return new DeleteTopicsResponse(struct);
+            case CREATE_DELEGATION_TOKEN:
+                return new DelegationTokenResponse(struct);
             default:
                 throw new AssertionError(String.format("ApiKey %s is not currently handled in `getResponse`, the " +
                         "code should be updated to do so.", apiKey));

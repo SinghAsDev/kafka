@@ -17,10 +17,14 @@
 
 package kafka.server
 
+import java.io.UnsupportedEncodingException
 import java.nio.ByteBuffer
 import java.lang.{Long => JLong, Short => JShort}
-import java.util.{Collections, Properties}
+import java.security.{InvalidKeyException, NoSuchAlgorithmException}
+import java.util.{Collections, Properties, UUID}
 import java.util
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 import kafka.admin.{AdminUtils, RackAwareMode}
 import kafka.api.{ControlledShutdownRequest, ControlledShutdownResponse, FetchResponsePartitionData}
@@ -45,6 +49,7 @@ import org.apache.kafka.common.requests.ProduceResponse.PartitionResponse
 import org.apache.kafka.common.utils.{Time, Utils}
 import org.apache.kafka.common.{Node, TopicPartition}
 import org.apache.kafka.common.requests.SaslHandshakeResponse
+import org.apache.kafka.common.security.auth.KafkaPrincipal
 
 import scala.collection._
 import scala.collection.JavaConverters._
@@ -98,6 +103,7 @@ class KafkaApis(val requestChannel: RequestChannel,
         case ApiKeys.API_VERSIONS => handleApiVersionsRequest(request)
         case ApiKeys.CREATE_TOPICS => handleCreateTopicsRequest(request)
         case ApiKeys.DELETE_TOPICS => handleDeleteTopicsRequest(request)
+        case ApiKeys.CREATE_DELEGATION_TOKEN => handleDelegationTokenRequest(request)
         case requestId => throw new KafkaException("Unknown api code " + requestId)
       }
     } catch {
@@ -1228,8 +1234,62 @@ class KafkaApis(val requestChannel: RequestChannel,
     }
   }
 
+  def handleDelegationTokenRequest(request: RequestChannel.Request) {
+    val secret = config.delegationTokenSecret
+    val delegationTokenRequest = request.body.asInstanceOf[DelegationTokenRequest]
+    val createdTime = System.currentTimeMillis()
+    val tokenId = java.util.UUID.randomUUID().toString
+    val hmacStr = hmac(tokenId, secret, "HmacSHA1")
+    val hmacBytes: Array[Byte] = hmacStr.getBytes()
+
+    if (secret == null || secret.isEmpty) {
+      trace(s"Rejecting delegation token creation request from ${request.session.clientAddress} as ${KafkaConfig.DelegationTokenSecretProp} is not set.")
+      requestChannel.sendResponse(new Response(
+        request,
+        new DelegationTokenResponse(
+          Errors.DELEGATION_TOKEN_NOT_ENABLED.code(),
+          KafkaPrincipal.ANONYMOUS,
+          util.Collections.emptySet[KafkaPrincipal],
+          -1L,
+          -1L,
+          -1L,
+          "",
+          Array[Byte]())))
+      return
+    }
+    requestChannel.sendResponse(new Response(
+      request,
+      new DelegationTokenResponse(
+        Errors.NONE.code,
+        request.session.principal,
+        delegationTokenRequest.renewers,
+        createdTime,
+        -1L,
+        Math.max(delegationTokenRequest.maxLifeTime, config.delegationTokenMaxLifeTimeMs),
+        tokenId,
+        hmacBytes)))
+  }
+
   def authorizeClusterAction(request: RequestChannel.Request): Unit = {
     if (!authorize(request.session, ClusterAction, Resource.ClusterResource))
       throw new ClusterAuthorizationException(s"Request $request is not authorized.")
+  }
+
+  private def hmac(msg: String, secret: String, algo: String): String = {
+    val key = new SecretKeySpec(secret.getBytes("UTF-8"), algo)
+    val mac = Mac.getInstance(algo)
+    mac.init(key)
+
+    val bytes = mac.doFinal(msg.getBytes("ASCII"))
+
+    val hash = new StringBuffer()
+    bytes.foreach(b => {
+      val hex = Integer.toHexString(0xFF & b)
+      if (hex.length == 1)
+        hash.append('0')
+      hash.append(hex)
+    })
+
+    hash.toString
   }
 }
