@@ -21,14 +21,16 @@ import java.io._
 import java.nio._
 import java.nio.channels._
 import java.util.concurrent.{Callable, Executors, TimeUnit}
-import java.util.{Properties, Random}
+import java.util.Properties
 import java.security.cert.X509Certificate
 import javax.net.ssl.X509TrustManager
 import charset.Charset
+
 import kafka.security.auth.{Acl, Authorizer, Resource}
 import org.apache.kafka.common.protocol.SecurityProtocol
 import org.apache.kafka.common.utils.Utils._
 import org.apache.kafka.test.TestSslUtils
+
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import kafka.server._
 import kafka.producer._
@@ -46,7 +48,9 @@ import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, Produce
 import org.apache.kafka.clients.consumer.{KafkaConsumer, RangeAssignor}
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.common.network.Mode
+import org.apache.kafka.common.record._
 import org.apache.kafka.common.serialization.{ByteArraySerializer, Serializer}
+import org.apache.kafka.common.utils.Time
 import org.apache.kafka.test.{TestUtils => JTestUtils}
 
 import scala.collection.Map
@@ -114,7 +118,7 @@ object TestUtils extends Logging {
    *
    * @param config The configuration of the server
    */
-  def createServer(config: KafkaConfig, time: Time = SystemTime): KafkaServer = {
+  def createServer(config: KafkaConfig, time: Time = Time.SYSTEM): KafkaServer = {
     val server = new KafkaServer(config, time)
     server.startup()
     server
@@ -266,16 +270,16 @@ object TestUtils extends Logging {
   }
 
   /**
-   * Wrap the message in a message set
-   *
-   * @param payload The bytes of the message
+   * Wrap a single record log buffer.
    */
-  def singleMessageSet(payload: Array[Byte],
-                       codec: CompressionCodec = NoCompressionCodec,
+  def singletonRecords(value: Array[Byte],
                        key: Array[Byte] = null,
-                       timestamp: Long = Message.NoTimestamp,
-                       magicValue: Byte = Message.CurrentMagicValue) =
-    new ByteBufferMessageSet(compressionCodec = codec, messages = new Message(payload, key, timestamp, magicValue))
+                       codec: CompressionType = CompressionType.NONE,
+                       timestamp: Long = Record.NO_TIMESTAMP,
+                       magicValue: Byte = Record.CURRENT_MAGIC_VALUE) = {
+    val record = Record.create(magicValue, timestamp, key, value)
+    MemoryRecords.withRecords(codec, record)
+  }
 
   /**
    * Generate an array of random bytes

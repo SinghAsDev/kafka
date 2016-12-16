@@ -17,19 +17,21 @@
 
 package kafka.log
 
-import java.io.{DataOutputStream, File}
+import java.io.File
 import java.nio._
 import java.util.Date
 import java.util.concurrent.{CountDownLatch, TimeUnit}
 
 import com.yammer.metrics.core.Gauge
 import kafka.common._
-import kafka.message._
 import kafka.metrics.KafkaMetricsGroup
 import kafka.utils._
+import org.apache.kafka.common.record.{FileRecords, LogEntry, MemoryRecords}
+import org.apache.kafka.common.utils.Time
+import MemoryRecords.LogEntryFilter
 
-import scala.Iterable
 import scala.collection._
+import JavaConverters._
 
 /**
  * The cleaner is responsible for removing obsolete records from logs which have the dedupe retention strategy.
@@ -69,7 +71,7 @@ import scala.collection._
 class LogCleaner(val config: CleanerConfig,
                  val logDirs: Array[File],
                  val logs: Pool[TopicAndPartition, Log], 
-                 time: Time = SystemTime) extends Logging with KafkaMetricsGroup {
+                 time: Time = Time.SYSTEM) extends Logging with KafkaMetricsGroup {
   
   /* for managing the state of partitions being cleaned. package-private to allow access in tests */
   private[log] val cleanerManager = new LogCleanerManager(logDirs, logs)
@@ -348,15 +350,15 @@ private[log] class Cleaner(val id: Int,
     val deleteHorizonMs = 
       log.logSegments(0, cleanable.firstDirtyOffset).lastOption match {
         case None => 0L
-        case Some(seg) => seg.largestTimestamp - log.config.deleteRetentionMs
+        case Some(seg) => seg.lastModified - log.config.deleteRetentionMs
     }
 
     // determine the timestamp up to which the log will be cleaned
     // this is the lower of the last active segment and the compaction lag
-    val cleanableHorizionMs = log.logSegments(0, cleanable.firstUncleanableOffset).lastOption.map(_.largestTimestamp).getOrElse(0L)
+    val cleanableHorizonMs = log.logSegments(0, cleanable.firstUncleanableOffset).lastOption.map(_.lastModified).getOrElse(0L)
 
     // group the segments and clean the groups
-    info("Cleaning log %s (cleaning prior to %s, discarding tombstones prior to %s)...".format(log.name, new Date(cleanableHorizionMs), new Date(deleteHorizonMs)))
+    info("Cleaning log %s (cleaning prior to %s, discarding tombstones prior to %s)...".format(log.name, new Date(cleanableHorizonMs), new Date(deleteHorizonMs)))
     for (group <- groupSegmentsBySize(log.logSegments(0, endOffset), log.config.segmentSize, log.config.maxIndexSize))
       cleanSegments(log, group, offsetMap, deleteHorizonMs, stats)
 
@@ -389,15 +391,15 @@ private[log] class Cleaner(val id: Int,
     val timeIndexFile = new File(segments.head.timeIndex.file.getPath + Log.CleanedFileSuffix)
     indexFile.delete()
     timeIndexFile.delete()
-    val messages = new FileMessageSet(logFile, fileAlreadyExists = false, initFileSize = log.initFileSize(), preallocate = log.config.preallocate)
+    val records = FileRecords.open(logFile, false, log.initFileSize(), log.config.preallocate)
     val index = new OffsetIndex(indexFile, segments.head.baseOffset, segments.head.index.maxIndexSize)
     val timeIndex = new TimeIndex(timeIndexFile, segments.head.baseOffset, segments.head.timeIndex.maxIndexSize)
-    val cleaned = new LogSegment(messages, index, timeIndex, segments.head.baseOffset, segments.head.indexIntervalBytes, log.config.randomSegmentJitter, time)
+    val cleaned = new LogSegment(records, index, timeIndex, segments.head.baseOffset, segments.head.indexIntervalBytes, log.config.randomSegmentJitter, time)
 
     try {
       // clean segments into the new destination segment
       for (old <- segments) {
-        val retainDeletes = old.largestTimestamp > deleteHorizonMs
+        val retainDeletes = old.lastModified > deleteHorizonMs
         info("Cleaning segment %s in log %s (largest timestamp %s) into %s, %s deletes."
             .format(old.baseOffset, log.name, new Date(old.largestTimestamp), cleaned.baseOffset, if(retainDeletes) "retaining" else "discarding"))
         cleanInto(log.topicAndPartition, old, cleaned, map, retainDeletes, log.config.maxMessageSize, stats)
@@ -448,8 +450,12 @@ private[log] class Cleaner(val id: Int,
                              retainDeletes: Boolean,
                              maxLogMessageSize: Int,
                              stats: CleanerStats) {
-    def shouldRetain(messageAndOffset: MessageAndOffset): Boolean =
-      shouldRetainMessage(source, map, retainDeletes, messageAndOffset, stats)
+    def shouldRetainEntry(logEntry: LogEntry): Boolean =
+      shouldRetainMessage(source, map, retainDeletes, logEntry, stats)
+
+    class LogCleanerFilter extends LogEntryFilter {
+      def shouldRetain(logEntry: LogEntry): Boolean = shouldRetainEntry(logEntry)
+    }
 
     var position = 0
     while (position < source.log.sizeInBytes) {
@@ -459,10 +465,9 @@ private[log] class Cleaner(val id: Int,
       writeBuffer.clear()
 
       source.log.readInto(readBuffer, position)
-      val messages = new ByteBufferMessageSet(readBuffer)
-      throttler.maybeThrottle(messages.sizeInBytes)
-      val result = messages.filterInto(writeBuffer, shouldRetain)
-
+      val records = MemoryRecords.readableRecords(readBuffer)
+      throttler.maybeThrottle(records.sizeInBytes)
+      val result = records.filterTo(new LogCleanerFilter, writeBuffer)
       stats.readMessages(result.messagesRead, result.bytesRead)
       stats.recopyMessages(result.messagesRetained, result.bytesRetained)
 
@@ -471,9 +476,12 @@ private[log] class Cleaner(val id: Int,
       // if any messages are to be retained, write them out
       if (writeBuffer.position > 0) {
         writeBuffer.flip()
-        val retained = new ByteBufferMessageSet(writeBuffer)
-        dest.append(firstOffset = retained.head.offset, largestTimestamp = result.maxTimestamp,
-          offsetOfLargestTimestamp = result.offsetOfMaxTimestamp, messages = retained)
+        val retained = MemoryRecords.readableRecords(writeBuffer)
+        dest.append(firstOffset = retained.deepEntries.iterator.next().offset,
+          largestOffset = result.maxOffset,
+          largestTimestamp = result.maxTimestamp,
+          shallowOffsetOfMaxTimestamp = result.shallowOffsetOfMaxTimestamp,
+          records = retained)
         throttler.maybeThrottle(writeBuffer.limit)
       }
       
@@ -487,21 +495,22 @@ private[log] class Cleaner(val id: Int,
   private def shouldRetainMessage(source: kafka.log.LogSegment,
                                   map: kafka.log.OffsetMap,
                                   retainDeletes: Boolean,
-                                  entry: kafka.message.MessageAndOffset,
+                                  entry: LogEntry,
                                   stats: CleanerStats): Boolean = {
     val pastLatestOffset = entry.offset > map.latestOffset
     if (pastLatestOffset)
       return true
 
-    val key = entry.message.key
-    if (key != null) {
+
+    if (entry.record.hasKey) {
+      val key = entry.record.key
       val foundOffset = map.get(key)
       /* two cases in which we can get rid of a message:
        *   1) if there exists a message with the same key but higher offset
        *   2) if the message is a delete "tombstone" marker and enough time has passed
        */
       val redundant = foundOffset >= 0 && entry.offset < foundOffset
-      val obsoleteDelete = !retainDeletes && entry.message.isNull
+      val obsoleteDelete = !retainDeletes && entry.record.hasNullValue
       !redundant && !obsoleteDelete
     } else {
       stats.invalidMessage()
@@ -619,12 +628,12 @@ private[log] class Cleaner(val id: Int,
       checkDone(topicAndPartition)
       readBuffer.clear()
       segment.log.readInto(readBuffer, position)
-      val messages = new ByteBufferMessageSet(readBuffer)
-      throttler.maybeThrottle(messages.sizeInBytes)
+      val records = MemoryRecords.readableRecords(readBuffer)
+      throttler.maybeThrottle(records.sizeInBytes)
 
       val startPosition = position
-      for (entry <- messages) {
-        val message = entry.message
+      for (entry <- records.deepEntries.asScala) {
+        val message = entry.record
         if (message.hasKey && entry.offset >= start) {
           if (map.size < maxDesiredMapSize)
             map.put(message.key, entry.offset)
@@ -633,8 +642,9 @@ private[log] class Cleaner(val id: Int,
         }
         stats.indexMessagesRead(1)
       }
-      position += messages.validBytes
-      stats.indexBytesRead(messages.validBytes)
+      val bytesRead = records.validBytes
+      position += bytesRead
+      stats.indexBytesRead(bytesRead)
 
       // if we didn't read even one complete message, our read buffer may be too small
       if(position == startPosition)
@@ -648,7 +658,7 @@ private[log] class Cleaner(val id: Int,
 /**
  * A simple struct for collecting stats about log cleaning
  */
-private class CleanerStats(time: Time = SystemTime) {
+private class CleanerStats(time: Time = Time.SYSTEM) {
   val startTime = time.milliseconds
   var mapCompleteTime = -1L
   var endTime = -1L
